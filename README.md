@@ -44,4 +44,8 @@ The GitHub token needs read access to repository contents and write access to `c
 npm test
 npm run lint
 npm run build
+npm run test:api
+npm audit
 ```
+
+`test:api` builds and starts a temporary production server, then verifies admin authorization, protected-catalog access, Range responses, traversal rejection, strict PDF upload validation, and portrait/landscape metadata.

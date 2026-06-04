@@ -5,7 +5,9 @@ import {
   createSlug,
   normalizeManifest,
   parseByteRange,
+  toPublicCatalog,
   validateCatalogCode,
+  validatePdfUpload,
 } from "../src/lib/catalog-model.js";
 
 test("creates stable safe slugs", () => {
@@ -44,4 +46,34 @@ test("normalizes manifests and does not allow duplicate slugs", () => {
 test("requires meaningful catalog access codes", () => {
   assert.equal(validateCatalogCode("shared-code-2026"), "shared-code-2026");
   assert.throws(() => validateCatalogCode("short"), /between 10 and 128/);
+});
+
+test("requires a PDF extension, MIME type, and safe size", () => {
+  const valid = {
+    name: "catalog.pdf",
+    type: "application/pdf",
+    size: 1024,
+    arrayBuffer() {},
+  };
+  assert.equal(validatePdfUpload(valid), valid);
+  assert.throws(() => validatePdfUpload({ ...valid, name: "catalog.txt" }), /\.pdf extension/);
+  assert.throws(() => validatePdfUpload({ ...valid, type: "text/plain" }), /application\/pdf MIME/);
+  assert.throws(() => validatePdfUpload({ ...valid, size: 0 }), /smaller than 95 MiB/);
+});
+
+test("reports portrait and landscape orientation from the catalog ratio", () => {
+  const base = {
+    slug: "orientation",
+    title: "Orientation",
+    description: "",
+    coverPath: null,
+    pageCount: 2,
+    sizeBytes: 100,
+    dateAdded: "2026-01-01T00:00:00.000Z",
+    published: true,
+    sortOrder: 0,
+    accessMode: "public",
+  };
+  assert.equal(toPublicCatalog({ ...base, aspectRatio: 0.7 }).orientation, "portrait");
+  assert.equal(toPublicCatalog({ ...base, aspectRatio: 1.4 }).orientation, "landscape");
 });

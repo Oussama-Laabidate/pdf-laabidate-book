@@ -1,7 +1,9 @@
 export const MAX_PDF_BYTES = 95 * 1024 * 1024;
+export const MAX_UPLOAD_REQUEST_BYTES = MAX_PDF_BYTES + 1024 * 1024;
 export const MANIFEST_VERSION = 1;
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const PDF_PATH_PATTERN = /^content\/catalogs\/[A-Za-z0-9][A-Za-z0-9._ -]*\.pdf$/i;
+export const PDF_MIME_TYPE = "application/pdf";
 
 export function createSlug(value) {
   const slug = String(value || "")
@@ -45,6 +47,22 @@ export function validateCatalogCode(code) {
     throw new Error("Catalog access codes must be between 10 and 128 characters.");
   }
   return value;
+}
+
+export function validatePdfUpload(file) {
+  if (!file || typeof file.arrayBuffer !== "function") {
+    throw new Error("Choose a PDF file.");
+  }
+  if (!Number.isFinite(file.size) || file.size <= 0 || file.size > MAX_PDF_BYTES) {
+    throw new Error("PDF must be smaller than 95 MiB.");
+  }
+  if (!/\.pdf$/i.test(String(file.name || ""))) {
+    throw new Error("PDF files must use the .pdf extension.");
+  }
+  if (String(file.type || "").toLowerCase() !== PDF_MIME_TYPE) {
+    throw new Error("PDF files must use the application/pdf MIME type.");
+  }
+  return file;
 }
 
 export function normalizeCatalog(catalog) {

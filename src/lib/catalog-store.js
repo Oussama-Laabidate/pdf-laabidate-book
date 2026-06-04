@@ -5,19 +5,22 @@ import {
   assertPdfPath,
   assertSlug,
   createSlug,
-  MAX_PDF_BYTES,
   normalizeCatalog,
   normalizeManifest,
   parseByteRange,
   toAdminCatalog,
   toPublicCatalog,
+  validatePdfUpload,
 } from "./catalog-model.js";
 import { hashCatalogCode } from "./security.js";
 import { readPdfMetadata } from "./pdf-meta.js";
 
 const ROOT = process.cwd();
-const MANIFEST_PATH = path.join(ROOT, "content", "catalogs.json");
-const CATALOGS_DIR = path.join(ROOT, "content", "catalogs");
+const CONTENT_ROOT = process.env.CATALOG_CONTENT_ROOT
+  ? path.resolve(process.env.CATALOG_CONTENT_ROOT)
+  : path.join(ROOT, "content");
+const MANIFEST_PATH = path.join(CONTENT_ROOT, "catalogs.json");
+const CATALOGS_DIR = path.join(CONTENT_ROOT, "catalogs");
 
 export function storageMode() {
   return process.env.CATALOG_STORAGE_MODE || (process.env.VERCEL ? "github" : "local");
@@ -52,11 +55,12 @@ export async function createLocalCatalog(file) {
   if (!canUploadLocally()) {
     throw new Error("PDF uploads are available only in local storage mode.");
   }
-  if (!file || file.size <= 0 || file.size > MAX_PDF_BYTES) {
-    throw new Error("PDF must be smaller than 95 MiB.");
-  }
+  validatePdfUpload(file);
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  if (buffer.length !== file.size) {
+    throw new Error("The uploaded PDF size could not be verified.");
+  }
   if (buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
     throw new Error("The uploaded file is not a valid PDF.");
   }
@@ -89,7 +93,12 @@ export async function createLocalCatalog(file) {
   });
 
   manifest.catalogs.push(catalog);
-  await writeManifest(manifest, `Add catalog ${catalog.title}`);
+  try {
+    await writeManifest(manifest, `Add catalog ${catalog.title}`);
+  } catch (error) {
+    await fsPromises.rm(absolutePath, { force: true }).catch(() => {});
+    throw error;
+  }
   return toAdminCatalog(catalog);
 }
 
@@ -281,7 +290,7 @@ function githubRequest(apiPath, options = {}) {
 function githubConfig() {
   const repository = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_CONTENT_TOKEN;
-  if (!repository || !/^[^/]+\/[^/]+$/.test(repository) || !token) {
+  if (!repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || !token) {
     throw new Error("GITHUB_REPOSITORY and GITHUB_CONTENT_TOKEN are required in GitHub storage mode.");
   }
   return {

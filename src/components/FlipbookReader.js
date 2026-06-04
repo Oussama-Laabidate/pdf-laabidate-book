@@ -197,7 +197,10 @@ export default function FlipbookReader({ book }) {
       const loader = document.createElement("div");
       loader.className = styles.pageLoader;
       if (renderedUrlsRef.current.has(pageNumber)) loader.classList.add(styles.pageLoaderHidden);
-      loader.innerHTML = `<span></span><strong>Page ${pageNumber}</strong>`;
+      const loaderSpinner = document.createElement("span");
+      const loaderLabel = document.createElement("strong");
+      loaderLabel.textContent = `Page ${pageNumber}`;
+      loader.append(loaderSpinner, loaderLabel);
 
       page.append(image, loader);
       host.appendChild(page);
