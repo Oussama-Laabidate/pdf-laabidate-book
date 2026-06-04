@@ -1,0 +1,131 @@
+.center, .gate {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.center {
+  align-content: center;
+  gap: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.center h1 {
+  color: var(--text);
+  font: 400 2.4rem/1 var(--font-display);
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+.gate {
+  position: relative;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.gate > .back {
+  position: absolute;
+  top: 28px;
+  left: 30px;
+}
+
+.gateCard {
+  width: min(100%, 450px);
+  border: 1px solid var(--border);
+  background: rgba(18, 16, 14, 0.84);
+  padding: clamp(28px, 6vw, 54px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.32);
+}
+
+.icon {
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(201,168,76,0.4);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  margin-bottom: 34px;
+}
+
+.label, .gateCard label span {
+  display: block;
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.gateCard h1 {
+  margin: 10px 0 14px;
+  font: 400 clamp(2.4rem, 8vw, 4rem)/0.95 var(--font-display);
+  letter-spacing: -0.055em;
+}
+
+.gateCard p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  margin-bottom: 30px;
+}
+
+.gateCard form {
+  display: grid;
+  gap: 14px;
+}
+
+.gateCard label {
+  display: grid;
+  gap: 8px;
+}
+
+.gateCard input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  background: #0e0d0b;
+  padding: 13px 14px;
+  outline: 0;
+}
+
+.gateCard input:focus {
+  border-color: var(--accent);
+}
+
+.gateCard button {
+  cursor: pointer;
+  background: var(--accent);
+  color: #11100e;
+  font-weight: 800;
+  padding: 14px;
+  margin-top: 4px;
+}
+
+.gateCard button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-04T16:13:22.445Z",
+  "catalogs": [
+    {
+      "slug": "photo",
+      "title": "PHOTO",
+      "description": "A visual catalog from the portfolio archive.",
+      "pdfPath": "content/catalogs/PHOTO.pdf",
+      "coverPath": null,
+      "pageCount": 87,
+      "aspectRatio": 1.414285,
+      "sizeBytes": 14949293,
+      "dateAdded": "2026-05-09T21:17:42.209Z",
+      "published": true,
+      "sortOrder": 0,
+      "accessMode": "public",
+      "codeHash": null
+    }
+  ]
+}
