@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# catalog PDF files (stored locally, not in git)
+content/catalogs/*.pdf

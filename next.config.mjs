@@ -17,6 +17,8 @@ const contentSecurityPolicy = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
+  compress: true,
   serverExternalPackages: ["pdfjs-dist"],
   async headers() {
     const securityHeaders = [
@@ -35,7 +37,21 @@ const nextConfig = {
         value: "max-age=63072000; includeSubDomains; preload",
       });
     }
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/pdf.worker.min.mjs",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+    ];
   },
   outputFileTracingExcludes: {
     "/*": ["./content/catalogs/**/*.pdf"],

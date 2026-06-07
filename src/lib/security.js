@@ -1,4 +1,6 @@
 import {
+  createCipheriv,
+  createDecipheriv,
   createHash,
   createHmac,
   randomBytes,
@@ -12,6 +14,7 @@ const scrypt = promisify(scryptCallback);
 export const ADMIN_COOKIE = "catalog_admin_session";
 export const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
 export const CATALOG_SESSION_SECONDS = 24 * 60 * 60;
+export const TEMPORARY_CATALOG_LINK_SECONDS = 24 * 60 * 60;
 
 export function accessCookieName(slug) {
   return `catalog_access_${slug}`;
@@ -30,6 +33,33 @@ export async function hashCatalogCode(code) {
   return `scrypt:${salt.toString("base64url")}:${Buffer.from(derived).toString("base64url")}`;
 }
 
+export function encryptCatalogCode(code) {
+  const validCode = validateCatalogCode(code);
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", catalogCodeKey(), iv);
+  cipher.setAAD(Buffer.from("catalog-access-code:v1"));
+  const encrypted = Buffer.concat([cipher.update(validCode, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `aes-256-gcm:${iv.toString("base64url")}:${tag.toString("base64url")}:${encrypted.toString("base64url")}`;
+}
+
+export function decryptCatalogCode(encodedCipher) {
+  const parts = String(encodedCipher || "").split(":");
+  if (parts.length !== 4 || parts[0] !== "aes-256-gcm") return "";
+
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", catalogCodeKey(), Buffer.from(parts[1], "base64url"));
+    decipher.setAAD(Buffer.from("catalog-access-code:v1"));
+    decipher.setAuthTag(Buffer.from(parts[2], "base64url"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(parts[3], "base64url")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
 export async function verifyCatalogCode(code, encodedHash) {
   const parts = String(encodedHash || "").split(":");
   if (parts.length !== 3 || parts[0] !== "scrypt") return false;
@@ -44,7 +74,7 @@ export async function verifyCatalogCode(code, encodedHash) {
   }
 }
 
-export function createSessionToken({ type, subject = "", maxAgeSeconds }) {
+export function createSessionToken({ type, subject = "", maxAgeSeconds, ...claims }) {
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     type,
@@ -52,6 +82,7 @@ export function createSessionToken({ type, subject = "", maxAgeSeconds }) {
     iat: now,
     exp: now + maxAgeSeconds,
     nonce: randomBytes(12).toString("base64url"),
+    ...claims,
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${encoded}.${sign(encoded)}`;
@@ -79,9 +110,44 @@ export function isAdminRequest(request) {
   return Boolean(verifySessionToken(token, { type: "admin" }));
 }
 
-export function hasCatalogAccess(request, slug) {
+export function hasCatalogAccess(request, slug, currentCodeHash = null) {
   const token = request.cookies.get(accessCookieName(slug))?.value;
-  return Boolean(verifySessionToken(token, { type: "catalog", subject: slug }));
+  const payload = verifySessionToken(token, { type: "catalog", subject: slug });
+  if (!payload) return false;
+  if (currentCodeHash && payload.codeHash !== currentCodeHash) return false;
+  return true;
+}
+
+export function createTemporaryCatalogToken(slug, maxAgeSeconds = TEMPORARY_CATALOG_LINK_SECONDS, options = {}) {
+  const linkCode = String(options.accessCode || "").trim();
+  return createSessionToken({
+    type: "catalog-temp",
+    subject: slug,
+    maxAgeSeconds,
+    oneTime: Boolean(options.oneTime),
+    linkCodeHash: linkCode ? hashLinkCode(linkCode) : null,
+  });
+}
+
+export function hasTemporaryCatalogAccess(request, slug) {
+  const token = request.nextUrl?.searchParams?.get("token") || new URL(request.url).searchParams.get("token");
+  const code = request.nextUrl?.searchParams?.get("code") || new URL(request.url).searchParams.get("code") || "";
+  return Boolean(verifyTemporaryCatalogPayload(token, slug, code));
+}
+
+export function verifyTemporaryCatalogToken(token, slug, code = "") {
+  return Boolean(verifyTemporaryCatalogPayload(token, slug, code));
+}
+
+export function verifyTemporaryCatalogPayload(token, slug, code = "") {
+  const payload = verifySessionToken(token, { type: "catalog-temp", subject: slug });
+  if (!payload) return null;
+  if (payload.linkCodeHash && payload.linkCodeHash !== hashLinkCode(code)) return null;
+  return payload;
+}
+
+export function temporaryTokenId(token) {
+  return createHash("sha256").update(String(token || "")).digest("base64url");
 }
 
 export function sessionCookieOptions(maxAge) {
@@ -113,4 +179,16 @@ function sign(value) {
     throw new Error("SESSION_SECRET must contain at least 32 characters.");
   }
   return createHmac("sha256", secret).update(value).digest("base64url");
+}
+
+function catalogCodeKey() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must contain at least 32 characters.");
+  }
+  return createHash("sha256").update(`catalog-access-code:${secret}`).digest();
+}
+
+function hashLinkCode(code) {
+  return createHash("sha256").update(String(code || "")).digest("base64url");
 }

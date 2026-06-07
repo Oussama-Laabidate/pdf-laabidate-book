@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCatalog } from "@/lib/catalog-store";
 import { assertSlug, toPublicCatalog } from "@/lib/catalog-model";
-import { hasCatalogAccess } from "@/lib/security";
+import { hasCatalogAccess, hasTemporaryCatalogAccess } from "@/lib/security";
 import { jsonError, serverError } from "@/lib/http";
 
 export const runtime = "nodejs";
@@ -14,7 +14,11 @@ export async function GET(request, context) {
     const catalog = await getCatalog(slug);
     if (!catalog) return jsonError("Catalog not found.", 404);
 
-    const hasAccess = catalog.accessMode === "public" || hasCatalogAccess(request, slug);
+    const hasAccess =
+      catalog.accessMode === "public" ||
+      hasCatalogAccess(request, slug, catalog.codeHash) ||
+      hasTemporaryCatalogAccess(request, slug);
+
     return NextResponse.json({
       success: true,
       catalog: toPublicCatalog(catalog),

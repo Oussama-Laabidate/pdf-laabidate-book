@@ -40,7 +40,12 @@ export async function POST(request, context) {
     const response = NextResponse.json({ success: true });
     response.cookies.set(
       accessCookieName(slug),
-      createSessionToken({ type: "catalog", subject: slug, maxAgeSeconds: CATALOG_SESSION_SECONDS }),
+      createSessionToken({
+        type: "catalog",
+        subject: slug,
+        maxAgeSeconds: CATALOG_SESSION_SECONDS,
+        codeHash: catalog.codeHash,
+      }),
       sessionCookieOptions(CATALOG_SESSION_SECONDS),
     );
     return response;

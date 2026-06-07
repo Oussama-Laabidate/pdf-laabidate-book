@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createSessionToken,
+  decryptCatalogCode,
+  encryptCatalogCode,
   hashCatalogCode,
   requireSameOrigin,
   secureCompare,
@@ -25,6 +27,15 @@ test("hashes catalog codes with salt and verifies without plaintext storage", as
   assert.equal(hash.includes(code), false);
   assert.equal(await verifyCatalogCode(code, hash), true);
   assert.equal(await verifyCatalogCode("wrong-code", hash), false);
+});
+
+test("encrypts catalog codes for admin-only recovery", () => {
+  const code = "visible-private-code-2026";
+  const encrypted = encryptCatalogCode(code);
+  assert.match(encrypted, /^aes-256-gcm:/);
+  assert.equal(encrypted.includes(code), false);
+  assert.equal(decryptCatalogCode(encrypted), code);
+  assert.equal(decryptCatalogCode(`${encrypted}tampered`), "");
 });
 
 test("uses constant-length comparison for secrets", () => {

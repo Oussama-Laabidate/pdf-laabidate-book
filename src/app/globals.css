@@ -1,22 +1,33 @@
 :root {
   color-scheme: dark;
-  --bg: #0c0b0a;
-  --bg-soft: #12100e;
-  --surface: #171411;
-  --surface-strong: #1c1814;
-  --text: #f2ede3;
-  --muted: #aaa197;
-  --faint: #756d65;
-  --border: rgba(242, 237, 227, 0.11);
-  --border-strong: rgba(242, 237, 227, 0.2);
-  --accent: #c9a84c;
-  --accent-soft: rgba(201, 168, 76, 0.13);
+  --bg: #0c0f17;
+  --bg-soft: #111827;
+  --bg-elevated: #191f2e;
+  --surface: #191f2e;
+  --surface-strong: #222b3f;
+  --surface-glass: rgba(25, 31, 46, 0.78);
+  --text: #eff1f5;
+  --muted: #a6adba;
+  --faint: #70798b;
+  --border: rgba(239, 241, 245, 0.12);
+  --border-strong: rgba(239, 241, 245, 0.22);
+  --accent: #476fff;
+  --accent-strong: #7ea0ff;
+  --accent-soft: rgba(71, 111, 255, 0.16);
+  --teal: #77d3bd;
+  --teal-soft: rgba(119, 211, 189, 0.12);
   --paper: #ffffff;
   --danger: #df8176;
   --success: #8db697;
   --shadow: rgba(0, 0, 0, 0.55);
-  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --space-page: clamp(18px, 4vw, 54px);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-dream: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-ui: "Bricolage Grotesque", "Avenir Next", Avenir, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-ui);
 }
 
 * {
@@ -27,17 +38,31 @@
 
 html, body {
   min-height: 100%;
-  background: var(--bg);
+  background:
+    linear-gradient(120deg, rgba(71, 111, 255, 0.08), transparent 26rem),
+    linear-gradient(180deg, var(--bg), #080b12 72%);
   color: var(--text);
   font-family: var(--font-ui);
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  min-height: 100vh;
-  background-image:
-    radial-gradient(circle at 16% 2%, rgba(201, 168, 76, 0.08), transparent 28rem),
-    linear-gradient(180deg, var(--bg), var(--bg-soft));
+body { min-height: 100vh; }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.18;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(71, 111, 255, 0.18), transparent 22%),
+    radial-gradient(circle at 78% 44%, rgba(119, 211, 189, 0.1), transparent 24%),
+    linear-gradient(120deg, transparent, rgba(239, 241, 245, 0.05), transparent);
+  filter: blur(18px);
+  animation: ambientField 24s ease-in-out infinite alternate;
 }
 
 button, input, textarea, select {
@@ -54,9 +79,13 @@ button {
   border: 0;
 }
 
+input, textarea, select, button {
+  font-size: 0.9rem;
+}
+
 ::selection {
   background: var(--accent);
-  color: #11100e;
+  color: #ffffff;
 }
 
 ::-webkit-scrollbar {
@@ -74,7 +103,7 @@ button {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 168, 76, 0.35);
+  background: rgba(71, 111, 255, 0.35);
 }
 
 @keyframes fadeIn {
@@ -82,12 +111,53 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(34px); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes softFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes slowPan {
+  0% { transform: translate3d(-3%, 0, 0) rotate(-10deg); opacity: 0.25; }
+  50% { transform: translate3d(4%, -3vh, 0) rotate(-12deg); opacity: 0.58; }
+  100% { transform: translate3d(-2%, 2vh, 0) rotate(-8deg); opacity: 0.34; }
+}
+
+@keyframes ambientField {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to { transform: translate3d(1.5%, 1%, 0) scale(1.05); }
+}
+
+@keyframes borderPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(71, 111, 255, 0); }
+  50% { box-shadow: 0 0 34px rgba(71, 111, 255, 0.12); }
+}
+
+@keyframes surfaceGlow {
+  0%, 100% { opacity: 0.25; transform: translateX(-12%); }
+  50% { opacity: 0.7; transform: translateX(12%); }
+}
+
+@keyframes sheen {
+  from { transform: translateX(-140%) skewX(-16deg); }
+  to { transform: translateX(140%) skewX(-16deg); }
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.5s var(--ease-out) forwards;
 }
 
 .visually-hidden {
@@ -111,6 +181,8 @@ button {
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
 }
+

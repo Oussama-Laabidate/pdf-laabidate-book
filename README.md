@@ -9,7 +9,7 @@ A Next.js portfolio for publishing responsive PDF catalogs with an animated page
 3. Run `npm install` and `npm run dev`.
 4. Open `/admin`, enter the admin code, and upload PDF files locally.
 
-Local uploads are validated, limited to 95 MiB per PDF, stored in `content/catalogs/`, and registered in `content/catalogs.json`.
+Local uploads are validated, streamed to `content/catalogs/`, and registered in `content/catalogs.json`. Large PDFs are limited by local disk space and any reverse proxy/server body limits; files over 128 MiB use the raw streaming upload path.
 
 ## Publishing workflow
 

@@ -71,6 +71,23 @@ test("secure catalog API flow", { timeout: 90_000 }, async (context) => {
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   let body = await response.json();
   assert.deepEqual(body.catalogs.map((catalog) => catalog.orientation), ["portrait", "landscape"]);
+  assert.deepEqual(body.catalogs.map((catalog) => catalog.category), ["CVs", "Catalogs"]);
+  assert.deepEqual(body.catalogs.map((catalog) => catalog.documentUrl), [
+    "/api/catalogs/portrait/document",
+    "/api/catalogs/landscape/document",
+  ]);
+
+  response = await fetch(`${baseUrl}/api/catalogs/portrait/document`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /application\/octet-stream/);
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-catalog-mime-type"), "application/pdf");
+  assert.equal(Number(response.headers.get("x-catalog-byte-length")), portraitPdf.length);
+  assert.equal(response.headers.get("x-catalog-document-encoding"), "prefixed-pdf-v1");
+  body = Buffer.from(await response.arrayBuffer());
+  assert.equal(body.byteLength, portraitPdf.length + 1);
+  assert.equal(body[0], 0);
+  assert.equal(body.subarray(1, 6).toString("ascii"), "%PDF-");
 
   response = await fetch(`${baseUrl}/api/catalogs/portrait/file`, {
     headers: { Range: "bytes=0-31" },
@@ -120,14 +137,78 @@ test("secure catalog API flow", { timeout: 90_000 }, async (context) => {
     method: "PATCH",
     origin: baseUrl,
     cookie: adminCookie,
+    body: { category: "  CVs   and Profiles  " },
+  });
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.catalog.category, "CVs and Profiles");
+
+  response = await fetch(`${baseUrl}/api/catalogs`);
+  body = await response.json();
+  assert.equal(body.catalogs[0].category, "CVs and Profiles");
+
+  response = await jsonRequest(`${baseUrl}/api/admin/catalogs/landscape`, {
+    method: "PATCH",
+    origin: baseUrl,
+    cookie: adminCookie,
+    body: { accessCode: `${VIEWER_CODE}-landscape` },
+  });
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.catalog.accessMode, "protected");
+  assert.equal(body.catalog.accessCode, `${VIEWER_CODE}-landscape`);
+
+  response = await fetch(`${baseUrl}/api/catalogs/landscape/file`);
+  assert.equal(response.status, 401);
+
+  response = await jsonRequest(`${baseUrl}/api/admin/catalogs/portrait`, {
+    method: "PATCH",
+    origin: baseUrl,
+    cookie: adminCookie,
     body: { accessMode: "protected", accessCode: VIEWER_CODE },
   });
-  assert.equal(response.status, 200);
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.catalog.accessCode, VIEWER_CODE);
+  assert.equal(body.catalog.hasAccessCode, true);
   const protectedManifest = await readFile(path.join(contentRoot, "catalogs.json"), "utf8");
   assert.match(protectedManifest, /"codeHash": "scrypt:/);
+  assert.match(protectedManifest, /"codeCipher": "aes-256-gcm:/);
   assert.equal(protectedManifest.includes(VIEWER_CODE), false);
 
+  response = await fetch(`${baseUrl}/api/admin/catalogs`, {
+    headers: { Cookie: adminCookie },
+  });
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.catalogs.find((catalog) => catalog.slug === "portrait").accessCode, VIEWER_CODE);
+
   response = await fetch(`${baseUrl}/api/catalogs/portrait/file`);
+  assert.equal(response.status, 401);
+
+  response = await fetch(`${baseUrl}/api/catalogs/portrait/document`);
+  assert.equal(response.status, 401);
+
+  response = await jsonRequest(`${baseUrl}/api/admin/catalogs/portrait/temporary-link`, {
+    method: "POST",
+    origin: baseUrl,
+    cookie: adminCookie,
+    body: { maxAgeSeconds: 3600 },
+  });
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.match(body.url, /\/catalog\/portrait\?token=/);
+  const temporaryUrl = new URL(body.url);
+  const temporaryToken = temporaryUrl.searchParams.get("token");
+
+  response = await fetch(`${baseUrl}/api/catalogs/portrait?token=${encodeURIComponent(temporaryToken)}`);
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.hasAccess, false);
+
+  response = await fetch(`${baseUrl}/api/catalogs/portrait/file?token=${encodeURIComponent(temporaryToken)}`, {
+    headers: { Range: "bytes=0-9" },
+  });
   assert.equal(response.status, 401);
 
   response = await jsonRequest(`${baseUrl}/api/catalogs/portrait/access`, {
@@ -151,6 +232,14 @@ test("secure catalog API flow", { timeout: 90_000 }, async (context) => {
   assert.equal(response.status, 206);
   assert.equal((await response.arrayBuffer()).byteLength, 16);
 
+  response = await fetch(`${baseUrl}/api/catalogs/portrait/document`, {
+    headers: { Cookie: viewerCookie },
+  });
+  assert.equal(response.status, 200);
+  body = Buffer.from(await response.arrayBuffer());
+  assert.equal(body.byteLength, portraitPdf.length + 1);
+  assert.equal(body.subarray(1, 6).toString("ascii"), "%PDF-");
+
   response = await fetch(`${baseUrl}/api/catalogs/%2e%2e%2fsecret/file`);
   assert.ok([400, 404].includes(response.status));
 
@@ -170,6 +259,12 @@ test("secure catalog API flow", { timeout: 90_000 }, async (context) => {
   body = await response.json();
   assert.equal(response.status, 201, JSON.stringify(body));
   assert.equal(body.catalog.orientation, "portrait");
+
+  response = await rawUploadRequest(baseUrl, adminCookie, "streamed-landscape.pdf", "application/pdf", landscapePdf);
+  body = await response.json();
+  assert.equal(response.status, 201, JSON.stringify(body));
+  assert.equal(body.catalog.orientation, "landscape");
+  assert.equal(body.catalog.sizeBytes, landscapePdf.length);
 });
 
 function catalogFixture(slug, pageCount, aspectRatio, sizeBytes) {
@@ -185,6 +280,7 @@ function catalogFixture(slug, pageCount, aspectRatio, sizeBytes) {
     dateAdded: "2026-06-04T00:00:00.000Z",
     published: true,
     sortOrder: slug === "portrait" ? 0 : 1,
+    category: slug === "portrait" ? "CVs" : "Catalogs",
     accessMode: "public",
     codeHash: null,
   };
@@ -197,6 +293,20 @@ async function uploadRequest(baseUrl, cookie, filename, type, bytes) {
     method: "POST",
     headers: { Cookie: cookie, Origin: baseUrl },
     body: formData,
+  });
+}
+
+function rawUploadRequest(baseUrl, cookie, filename, type, bytes) {
+  return fetch(`${baseUrl}/api/admin/catalogs`, {
+    method: "PUT",
+    headers: {
+      Cookie: cookie,
+      Origin: baseUrl,
+      "Content-Type": type,
+      "X-File-Name": encodeURIComponent(filename),
+      "Content-Length": String(bytes.length),
+    },
+    body: bytes,
   });
 }
 

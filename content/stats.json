@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-07T22:19:25.081Z",
+  "site": {
+    "visits": 89,
+    "totalDurationMs": 1923869,
+    "engagementCount": 45,
+    "byDay": {
+      "2026-06-06": 32,
+      "2026-06-07": 57
+    }
+  },
+  "catalogs": {
+    "unishorts": {
+      "views": 3,
+      "clicks": 1,
+      "temporaryLinks": 1,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T02:05:40.561Z"
+    },
+    "web4jobs-branding-guideline": {
+      "views": 1,
+      "clicks": 1,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T01:54:01.378Z"
+    },
+    "rapport-d-activite": {
+      "views": 3,
+      "clicks": 2,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T02:04:13.580Z"
+    },
+    "rico-finally": {
+      "views": 2,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T01:54:36.829Z"
+    },
+    "rapport-stagbe-v3-laabidate": {
+      "views": 1,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T01:54:33.447Z"
+    },
+    "stage-rapport": {
+      "views": 2,
+      "clicks": 1,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T02:07:02.599Z"
+    },
+    "rapport-de-stage-pfe": {
+      "views": 3,
+      "clicks": 1,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T02:06:47.597Z"
+    },
+    "photo": {
+      "views": 2,
+      "clicks": 2,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T22:17:41.546Z"
+    },
+    "portfolio": {
+      "views": 1,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-06T02:16:43.722Z"
+    },
+    "black-and-purple-modern-annual-report": {
+      "views": 0,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": null
+    },
+    "portfolio-2": {
+      "views": 28,
+      "clicks": 30,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T22:09:51.782Z"
+    },
+    "fragrance": {
+      "views": 1,
+      "clicks": 1,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T02:26:07.017Z"
+    },
+    "projet-laabidate-oussama": {
+      "views": 0,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": null
+    },
+    "labidate": {
+      "views": 1,
+      "clicks": 1,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": "2026-06-07T02:13:31.147Z"
+    },
+    "catalog-2024": {
+      "views": 0,
+      "clicks": 0,
+      "temporaryLinks": 0,
+      "aiRuns": 2,
+      "lastViewedAt": null
+    }
+  },
+  "temporaryTokens": {}
+}
