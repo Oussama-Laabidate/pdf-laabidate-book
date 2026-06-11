@@ -26,15 +26,6 @@ export async function GET(request, context) {
     const payload = verifyTemporaryCatalogPayload(token, slug, code);
     if (!payload) return jsonError("Temporary link is invalid or expired.", 403);
 
-    if (catalog.accessMode === "protected") {
-      // For protected catalogs with a temporary link, pass the token (and optional code)
-      // through the redirect so the catalog page can verify access via the temporary token.
-      const redirectUrl = new URL(`/catalog/${encodeURIComponent(slug)}`, request.url);
-      if (token) redirectUrl.searchParams.set("token", token);
-      if (code) redirectUrl.searchParams.set("code", code);
-      return NextResponse.redirect(redirectUrl);
-    }
-
     const id = temporaryTokenId(token);
     if (payload.oneTime && await isTemporaryTokenUsed(id)) {
       return jsonError("This one-time catalog link has already been used.", 410);
@@ -46,7 +37,12 @@ export async function GET(request, context) {
     const response = NextResponse.redirect(new URL(`/catalog/${encodeURIComponent(slug)}`, request.url));
     response.cookies.set(
       accessCookieName(slug),
-      createSessionToken({ type: "catalog", subject: slug, maxAgeSeconds: remainingSeconds }),
+      createSessionToken({
+        type: "catalog",
+        subject: slug,
+        maxAgeSeconds: remainingSeconds,
+        codeHash: catalog.accessMode === "protected" ? catalog.codeHash : null,
+      }),
       sessionCookieOptions(remainingSeconds),
     );
     return response;

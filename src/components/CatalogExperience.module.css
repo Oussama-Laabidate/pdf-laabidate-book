@@ -556,6 +556,179 @@
 }
 
 /* ============================================================
+   CATALOG AI CHAT
+   ============================================================ */
+
+.chatToggle {
+  position: fixed;
+  right: 22px;
+  bottom: 74px;
+  z-index: 120;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(71, 111, 255, 0.45);
+  border-radius: 50%;
+  background: rgba(13, 12, 10, 0.9);
+  color: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(16px);
+}
+
+.chatToggle:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.chatPanel {
+  position: fixed;
+  right: 22px;
+  bottom: 128px;
+  z-index: 121;
+  width: min(420px, calc(100vw - 28px));
+  max-height: min(620px, calc(100dvh - 170px));
+  display: grid;
+  grid-template-rows: auto minmax(180px, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(13, 12, 10, 0.96);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(18px);
+}
+
+.chatPanel header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chatPanel header div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.chatPanel header span {
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.chatPanel header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatPanel header button,
+.chatForm button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chatPanel header button:hover,
+.chatForm button:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.chatEmpty {
+  color: var(--faint);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.userMessage,
+.assistantMessage {
+  max-width: 88%;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.48;
+}
+
+.userMessage {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.assistantMessage {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  background: rgba(25, 31, 46, 0.62);
+  color: var(--text);
+}
+
+.assistantMessage small {
+  color: var(--teal);
+  font-size: 0.68rem;
+}
+
+.chatForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.chatForm input {
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #0d0c09;
+  color: var(--text);
+  padding: 0 12px;
+  outline: 0;
+}
+
+.chatForm input:focus {
+  border-color: var(--accent);
+}
+
+.chatForm button {
+  width: 38px;
+  height: 38px;
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.chatForm button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* ============================================================
    KEYFRAMES
    ============================================================ */
 
@@ -654,5 +827,15 @@
 
   .gateBook {
     width: min(52vw, 220px);
+  }
+
+  .chatToggle {
+    right: 12px;
+    bottom: 64px;
+  }
+
+  .chatPanel {
+    right: 14px;
+    bottom: 116px;
   }
 }

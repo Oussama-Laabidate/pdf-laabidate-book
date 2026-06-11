@@ -41,8 +41,9 @@ export default function AdminPage() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [statsData, setStatsData] = useState(null);
   const [statsBackend, setStatsBackend] = useState("local");
-  const [geminiKey, setGeminiKey] = useState(() => getStoredGeminiKey());
-  const [geminiSaved, setGeminiSaved] = useState(() => Boolean(getStoredGeminiKey()));
+  const [aiSettings, setAiSettings] = useState({ configured: false, source: "none", model: "gemini-2.5-flash" });
+  const [aiKeyDraft, setAiKeyDraft] = useState("");
+  const [aiModelDraft, setAiModelDraft] = useState("gemini-2.5-flash");
   const inputRef = useRef(null);
   const dragDepthRef = useRef(0);
   const stats = useMemo(() => ({
@@ -81,6 +82,16 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadAiSettings = useCallback(async () => {
+    try {
+      const data = await requestJson("GET", "/api/admin/ai-settings");
+      setAiSettings(data.settings);
+      setAiModelDraft(data.settings.model || "gemini-2.5-flash");
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }, []);
+
   const loadCatalogs = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -90,6 +101,7 @@ export default function AdminPage() {
       setCanUpload(data.canUpload);
       setStorageMode(data.storageMode);
       loadStats();
+      loadAiSettings();
     } catch (requestError) {
       if (requestError.status === 401) {
         setAuthenticated(false);
@@ -99,7 +111,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadAiSettings, loadStats]);
 
   useEffect(() => {
     requestJson("GET", "/api/admin/session")
@@ -208,18 +220,21 @@ export default function AdminPage() {
     setNotice(`${updated.title} was saved.`);
   }
 
-  function saveGeminiKey() {
-    const trimmed = geminiKey.trim();
-    if (trimmed) {
-      window.localStorage.setItem("catalog_gemini_api_key", trimmed);
-      setGeminiKey(trimmed);
-      setGeminiSaved(true);
-      setNotice("Gemini key was saved in this browser.");
-      setError("");
-    } else {
-      window.localStorage.removeItem("catalog_gemini_api_key");
-      setGeminiSaved(false);
-      setNotice("Gemini key was cleared from this browser.");
+  async function saveAiSettings() {
+    setError("");
+    const shouldClearKey = !aiKeyDraft.trim() && aiSettings.source === "admin" && aiModelDraft === aiSettings.model;
+    try {
+      const data = await requestJson("PUT", "/api/admin/ai-settings", {
+        apiKey: aiKeyDraft.trim(),
+        model: aiModelDraft.trim(),
+        clearApiKey: shouldClearKey,
+      });
+      setAiSettings(data.settings);
+      setAiModelDraft(data.settings.model || "gemini-2.5-flash");
+      setAiKeyDraft("");
+      setNotice(data.settings.configured ? "AI settings were saved for public catalog questions." : "AI key was cleared.");
+    } catch (requestError) {
+      setError(requestError.message);
     }
   }
 
@@ -294,24 +309,30 @@ export default function AdminPage() {
       <section className={styles.settingsSection}>
         <div>
           <span className={styles.label}>AI settings</span>
-          <h2>Gemini API key</h2>
-          <p>Use a Google AI Studio key here for admin AI tasks. Vercel environment variables remain the preferred production setup.</p>
+          <h2>Catalog question answering</h2>
+          <p>Save a Gemini API key for public questions. Answers are generated only from the PDF text of the catalog being viewed.</p>
         </div>
         <label className={styles.keyField}>
-          <span>Gemini key</span>
+          <span>Gemini key {aiSettings.configured ? `(${aiSettings.source})` : ""}</span>
           <input
             type="password"
-            value={geminiKey}
-            onChange={(event) => {
-              setGeminiKey(event.target.value);
-              setGeminiSaved(false);
-            }}
-            placeholder={geminiSaved ? "Gemini key saved in this browser" : "AIza..."}
+            value={aiKeyDraft}
+            onChange={(event) => setAiKeyDraft(event.target.value)}
+            placeholder={aiSettings.configured ? "Key configured on server" : "AIza..."}
             autoComplete="off"
           />
         </label>
-        <button type="button" className={styles.secondaryButton} onClick={saveGeminiKey}>
-          <KeyRound size={15} /> {geminiKey.trim() ? "Save key" : "Clear key"}
+        <label className={styles.keyField}>
+          <span>Model</span>
+          <input
+            value={aiModelDraft}
+            onChange={(event) => setAiModelDraft(event.target.value)}
+            placeholder="gemini-2.5-flash"
+            autoComplete="off"
+          />
+        </label>
+        <button type="button" className={styles.secondaryButton} onClick={saveAiSettings}>
+          <KeyRound size={15} /> {!aiKeyDraft.trim() && aiSettings.source === "admin" && aiModelDraft === aiSettings.model ? "Clear key" : "Save AI"}
         </button>
       </section>
 
@@ -422,7 +443,6 @@ export default function AdminPage() {
                 categories={categories}
                 catalogStats={statsData?.catalogs?.[catalog.slug]}
                 statsBackend={statsBackend}
-                geminiApiKey={geminiKey.trim()}
                 key={catalog.slug}
                 onSaved={replaceCatalog}
                 onRemove={() => setPendingDelete(catalog)}
@@ -453,7 +473,7 @@ export default function AdminPage() {
   );
 }
 
-function CatalogEditor({ catalog, categories, catalogStats, statsBackend, geminiApiKey, onSaved, onRemove, onError, onRefreshStats }) {
+function CatalogEditor({ catalog, categories, catalogStats, statsBackend, onSaved, onRemove, onError, onRefreshStats }) {
   const [form, setForm] = useState({
     title: catalog.title,
     description: catalog.description,
@@ -548,7 +568,7 @@ function CatalogEditor({ catalog, categories, catalogStats, statsBackend, gemini
     setAiLoading(task);
     onError("");
     try {
-      const data = await requestJson("POST", `/api/admin/catalogs/${catalog.slug}/ai`, { task, apply: true, geminiApiKey });
+      const data = await requestJson("POST", `/api/admin/catalogs/${catalog.slug}/ai`, { task, apply: true });
       setForm((current) => ({
         ...current,
         title: data.catalog.title,
@@ -715,11 +735,6 @@ function formatDuration(ms) {
   if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h ${minutes % 60}m`;
-}
-
-function getStoredGeminiKey() {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem("catalog_gemini_api_key") || "";
 }
 
 function formatBytes(bytes) {

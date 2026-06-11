@@ -8,9 +8,12 @@ import {
   BookOpen,
   KeyRound,
   LockKeyhole,
+  MessageCircle,
+  Send,
   Shield,
   Tag,
   Unlock,
+  X,
 } from "lucide-react";
 import FlipbookReader from "./FlipbookReader";
 import styles from "./CatalogExperience.module.css";
@@ -37,6 +40,12 @@ export default function CatalogExperience({
   const bookCanvasRef = useRef(null);
   const [backdropReady, setBackdropReady] = useState(false);
   const [bookReady, setBookReady] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [asking, setAsking] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const askingRef = useRef(false);
 
   useEffect(() => {
     if (initialCatalog?.accessMode === "public") return undefined;
@@ -151,6 +160,45 @@ export default function CatalogExperience({
       setAccessError(error.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function askCatalog(event) {
+    event.preventDefault();
+    const trimmed = question.trim();
+    if (!trimmed || askingRef.current) return;
+
+    askingRef.current = true;
+    const userMessage = { role: "user", text: trimmed };
+    setChatMessages((current) => [...current, userMessage]);
+    setQuestion("");
+    setAsking(true);
+    setChatError("");
+
+    try {
+      const query = temporaryToken ? `?${temporaryQuery(temporaryToken, temporaryCode)}` : "";
+      const response = await fetch(`/api/catalogs/${encodeURIComponent(slug)}/ask${query}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ question: trimmed }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The catalog could not answer this question.");
+      setChatMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: data.answer,
+          citations: data.citations || [],
+          inCatalog: data.inCatalog,
+        },
+      ]);
+    } catch (error) {
+      setChatError(catalogQuestionError(error.message));
+    } finally {
+      askingRef.current = false;
+      setAsking(false);
     }
   }
 
@@ -278,7 +326,60 @@ export default function CatalogExperience({
     );
   }
 
-  return <FlipbookReader book={withTemporaryToken(state.catalog, temporaryToken, temporaryCode)} />;
+  return (
+    <>
+      <FlipbookReader book={withTemporaryToken(state.catalog, temporaryToken, temporaryCode)} />
+      <button
+        type="button"
+        className={styles.chatToggle}
+        onClick={() => setChatOpen((current) => !current)}
+        aria-label={chatOpen ? "Close catalog questions" : "Ask this catalog"}
+        title={chatOpen ? "Close catalog questions" : "Ask this catalog"}
+      >
+        {chatOpen ? <X size={18} /> : <MessageCircle size={18} />}
+      </button>
+      {chatOpen && (
+        <aside className={styles.chatPanel} aria-label="Catalog questions">
+          <header>
+            <div>
+              <span>Catalog AI</span>
+              <strong>{state.catalog.title}</strong>
+            </div>
+            <button type="button" onClick={() => setChatOpen(false)} aria-label="Close catalog questions">
+              <X size={16} />
+            </button>
+          </header>
+          <div className={styles.chatMessages}>
+            {chatMessages.length === 0 ? (
+              <p className={styles.chatEmpty}>Ask a question about this catalog. Answers use this PDF only.</p>
+            ) : chatMessages.map((message, index) => (
+              <article className={message.role === "user" ? styles.userMessage : styles.assistantMessage} key={`${message.role}-${index}`}>
+                <p dir="auto">{message.text}</p>
+                {message.citations?.length > 0 && (
+                  <small>Pages {message.citations.join(", ")}</small>
+                )}
+              </article>
+            ))}
+            {asking && <article className={styles.assistantMessage}><p>Checking this catalog...</p></article>}
+            {chatError && <div className={styles.error}><AlertCircle size={14} /> {chatError}</div>}
+          </div>
+          <form className={styles.chatForm} onSubmit={askCatalog}>
+            <input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Ask about this catalog"
+              dir="auto"
+              maxLength={600}
+              disabled={asking}
+            />
+            <button type="submit" disabled={asking || !question.trim()} aria-label="Send question">
+              <Send size={16} />
+            </button>
+          </form>
+        </aside>
+      )}
+    </>
+  );
 }
 
 function withTemporaryToken(catalog, token, code) {
@@ -295,6 +396,23 @@ function temporaryQuery(token, code) {
   const params = new URLSearchParams({ token });
   if (code) params.set("code", code);
   return params.toString();
+}
+
+function catalogQuestionError(message) {
+  const text = String(message || "");
+  if (/AI is not configured|API key is not configured/i.test(text)) {
+    return "لم يتم تفعيل الذكاء الاصطناعي بعد. أضف مفتاح Gemini من لوحة الإدارة حتى تعمل الأسئلة.";
+  }
+  if (/not enough extractable text/i.test(text)) {
+    return "لا يحتوي هذا الكتالوج على نص كاف قابل للقراءة للإجابة عنه.";
+  }
+  if (/Too many AI questions/i.test(text)) {
+    return "تم إرسال عدد كبير من الأسئلة. حاول مرة أخرى لاحقاً.";
+  }
+  if (/Catalog access code required/i.test(text)) {
+    return "يجب فتح هذا الكتالوج أولاً قبل طرح الأسئلة.";
+  }
+  return text || "تعذر إرسال السؤال الآن.";
 }
 
 function sendStats(payload) {

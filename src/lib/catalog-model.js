@@ -116,6 +116,7 @@ export function normalizeManifest(manifest) {
     version: MANIFEST_VERSION,
     updatedAt: validIsoDate(manifest?.updatedAt) || new Date().toISOString(),
     catalogs,
+    ai: normalizeAiSettings(manifest?.ai),
   };
 }
 
@@ -194,4 +195,16 @@ function validIsoDate(value) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? null : date.toISOString();
+}
+
+function normalizeAiSettings(settings) {
+  const provider = settings?.provider === "gemini" ? "gemini" : "gemini";
+  const model = String(settings?.model || "").trim().slice(0, 120) || "gemini-2.5-flash";
+  const apiKeyCipher = settings?.apiKeyCipher ? String(settings.apiKeyCipher) : null;
+  return {
+    provider,
+    model,
+    apiKeyCipher,
+    updatedAt: validIsoDate(settings?.updatedAt),
+  };
 }

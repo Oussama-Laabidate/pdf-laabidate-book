@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertSlug } from "@/lib/catalog-model";
-import { getCatalog, readCatalogDocument, updateCatalog } from "@/lib/catalog-store";
+import { getCatalog, readAiSettings, readCatalogDocument, updateCatalog } from "@/lib/catalog-store";
 import { generateCatalogAi } from "@/lib/google-ai";
 import { jsonError, requireAdmin } from "@/lib/http";
 import { readPdfText } from "@/lib/pdf-text";
@@ -31,11 +31,13 @@ export async function POST(request, context) {
       return jsonError("The PDF does not contain enough extractable text for AI metadata.", 422);
     }
 
+    const settings = await readAiSettings({ includeSecret: true });
     const result = await generateCatalogAi({
       task,
       catalog,
       text: extracted.text,
-      apiKeyOverride: body.geminiApiKey,
+      apiKeyOverride: body.geminiApiKey || settings.apiKey,
+      modelOverride: settings.model,
     });
     let updated = catalog;
     if (body.apply !== false) {

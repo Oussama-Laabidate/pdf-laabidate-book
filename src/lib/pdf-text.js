@@ -23,14 +23,16 @@ export async function readPdfText(buffer, options = {}) {
         .map((item) => String(item.str || "").trim())
         .filter(Boolean)
         .join(" ");
-      if (text) pages.push(text);
-      if (pages.join("\n\n").length >= maxChars) break;
+      if (text) pages.push({ pageNumber, text });
+      if (pages.map((item) => item.text).join("\n\n").length >= maxChars) break;
     }
 
+    const text = pages.map((item) => item.text).join("\n\n").slice(0, maxChars);
     return {
-      text: pages.join("\n\n").slice(0, maxChars),
+      text,
       pageCount: document.numPages,
       pagesRead: pageLimit,
+      pages,
     };
   } finally {
     await task.destroy().catch(() => {});

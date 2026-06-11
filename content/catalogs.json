@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-07T22:17:31.021Z",
+  "updatedAt": "2026-06-11T23:46:15.605Z",
   "catalogs": [
     {
       "slug": "unishorts",
@@ -254,5 +254,11 @@
       "codeHash": null,
       "codeCipher": null
     }
-  ]
+  ],
+  "ai": {
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "apiKeyCipher": "aes-256-gcm:gemini-api-key:fYolfj66T3t7FSxm:WUNEHiJfLEzX6bfOgEfdjw:De0LbqAKlO2lv97gpuVPDQZGFbh2d9K49iAYw-DKdRLptlQNLrC7",
+    "updatedAt": "2026-06-11T23:46:15.605Z"
+  }
 }

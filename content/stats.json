@@ -1,22 +1,23 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-07T22:19:25.081Z",
+  "updatedAt": "2026-06-11T23:47:23.220Z",
   "site": {
-    "visits": 89,
-    "totalDurationMs": 1923869,
-    "engagementCount": 45,
+    "visits": 98,
+    "totalDurationMs": 1930442,
+    "engagementCount": 48,
     "byDay": {
       "2026-06-06": 32,
-      "2026-06-07": 57
+      "2026-06-07": 57,
+      "2026-06-11": 9
     }
   },
   "catalogs": {
     "unishorts": {
       "views": 3,
-      "clicks": 1,
+      "clicks": 2,
       "temporaryLinks": 1,
       "aiRuns": 2,
-      "lastViewedAt": "2026-06-07T02:05:40.561Z"
+      "lastViewedAt": "2026-06-11T23:41:14.054Z"
     },
     "web4jobs-branding-guideline": {
       "views": 1,
@@ -26,18 +27,18 @@
       "lastViewedAt": "2026-06-06T01:54:01.378Z"
     },
     "rapport-d-activite": {
-      "views": 3,
-      "clicks": 2,
+      "views": 4,
+      "clicks": 4,
       "temporaryLinks": 0,
       "aiRuns": 2,
-      "lastViewedAt": "2026-06-07T02:04:13.580Z"
+      "lastViewedAt": "2026-06-11T23:46:27.307Z"
     },
     "rico-finally": {
-      "views": 2,
+      "views": 6,
       "clicks": 0,
       "temporaryLinks": 0,
       "aiRuns": 2,
-      "lastViewedAt": "2026-06-06T01:54:36.829Z"
+      "lastViewedAt": "2026-06-11T23:43:13.788Z"
     },
     "rapport-stagbe-v3-laabidate": {
       "views": 1,
@@ -75,11 +76,11 @@
       "lastViewedAt": "2026-06-06T02:16:43.722Z"
     },
     "black-and-purple-modern-annual-report": {
-      "views": 0,
-      "clicks": 0,
+      "views": 1,
+      "clicks": 1,
       "temporaryLinks": 0,
       "aiRuns": 2,
-      "lastViewedAt": null
+      "lastViewedAt": "2026-06-11T23:47:08.542Z"
     },
     "portfolio-2": {
       "views": 28,

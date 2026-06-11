@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateCatalogAi } from "../src/lib/google-ai.js";
+import { generateCatalogAi, generateCatalogAnswer } from "../src/lib/google-ai.js";
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -38,4 +38,29 @@ test("explains Gemini quota failures with a quota action", async () => {
     }),
     /Gemini quota was exceeded/,
   );
+});
+
+test("parses scoped catalog question answers from Gemini JSON", async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{
+      content: {
+        parts: [{ text: JSON.stringify({
+          answer: "The warranty duration is 24 months.",
+          inCatalog: true,
+          citations: [2],
+        }) }],
+      },
+    }],
+  }), { status: 200, headers: { "Content-Type": "application/json" } });
+
+  const answer = await generateCatalogAnswer({
+    question: "What is the warranty duration?",
+    catalog: { title: "Catalog 4", category: "Catalogs" },
+    chunks: [{ pageNumber: 2, text: "Warranty duration is 24 months." }],
+    apiKeyOverride: "test-key",
+  });
+
+  assert.equal(answer.inCatalog, true);
+  assert.equal(answer.answer, "The warranty duration is 24 months.");
+  assert.deepEqual(answer.citations, [2]);
 });

@@ -26,14 +26,21 @@ CATALOG_STORAGE_MODE=github
 GITHUB_REPOSITORY=owner/repository
 GITHUB_CONTENT_BRANCH=main
 GITHUB_CONTENT_TOKEN=...
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 The GitHub token needs read access to repository contents and write access to `content/catalogs.json`. Production admin changes update that manifest through the GitHub Contents API. PDF binary uploads remain local-only because Vercel Functions do not provide durable project-file writes.
 
+## Catalog AI
+
+Open `/admin` and save a Gemini API key in the AI settings section, or set `GEMINI_API_KEY` directly in Vercel. Admin-saved keys are encrypted into `content/catalogs.json` with `SESSION_SECRET`, so keep `SESSION_SECRET` stable across deployments. Visitors can ask questions only after they have access to the catalog, and answers are generated from the active PDF catalog excerpts only.
+
 ## Security model
 
 - PDFs live outside `public/` and are delivered only through `/api/catalogs/[slug]/file`.
+- Protected catalog covers, documents, files, and AI questions all re-check catalog access server-side.
 - Protected catalog codes are stored as salted `scrypt` hashes.
+- Admin-saved AI keys are encrypted server-side and are never sent back to the browser.
 - Admin and catalog sessions use signed `HttpOnly`, `Secure`, `SameSite=Strict` cookies.
 - Every admin mutation is authorized server-side and rejects cross-origin requests.
 - Verification endpoints include an application-level rate limit; configure Vercel Firewall rate limiting for production as well.
@@ -48,4 +55,4 @@ npm run test:api
 npm audit
 ```
 
-`test:api` builds and starts a temporary production server, then verifies admin authorization, protected-catalog access, Range responses, traversal rejection, strict PDF upload validation, and portrait/landscape metadata.
+`test:api` builds and starts a temporary production server, then verifies admin authorization, protected-catalog access, temporary links, Range responses, traversal rejection, strict PDF upload validation, and portrait/landscape metadata.

@@ -60,6 +60,34 @@ export function decryptCatalogCode(encodedCipher) {
   }
 }
 
+export function encryptSecret(value, purpose = "app-secret") {
+  const secret = String(value || "").trim();
+  if (!secret) return "";
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", genericSecretKey(), iv);
+  cipher.setAAD(Buffer.from(`${purpose}:v1`));
+  const encrypted = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `aes-256-gcm:${purpose}:${iv.toString("base64url")}:${tag.toString("base64url")}:${encrypted.toString("base64url")}`;
+}
+
+export function decryptSecret(encodedCipher, purpose = "app-secret") {
+  const parts = String(encodedCipher || "").split(":");
+  if (parts.length !== 5 || parts[0] !== "aes-256-gcm" || parts[1] !== purpose) return "";
+
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", genericSecretKey(), Buffer.from(parts[2], "base64url"));
+    decipher.setAAD(Buffer.from(`${purpose}:v1`));
+    decipher.setAuthTag(Buffer.from(parts[3], "base64url"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(parts[4], "base64url")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
 export async function verifyCatalogCode(code, encodedHash) {
   const parts = String(encodedHash || "").split(":");
   if (parts.length !== 3 || parts[0] !== "scrypt") return false;
@@ -187,6 +215,14 @@ function catalogCodeKey() {
     throw new Error("SESSION_SECRET must contain at least 32 characters.");
   }
   return createHash("sha256").update(`catalog-access-code:${secret}`).digest();
+}
+
+function genericSecretKey() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must contain at least 32 characters.");
+  }
+  return createHash("sha256").update(`server-secret:${secret}`).digest();
 }
 
 function hashLinkCode(code) {

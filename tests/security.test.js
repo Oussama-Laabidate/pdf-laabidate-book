@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   createSessionToken,
   decryptCatalogCode,
+  decryptSecret,
   encryptCatalogCode,
+  encryptSecret,
   hashCatalogCode,
   requireSameOrigin,
   secureCompare,
@@ -36,6 +38,15 @@ test("encrypts catalog codes for admin-only recovery", () => {
   assert.equal(encrypted.includes(code), false);
   assert.equal(decryptCatalogCode(encrypted), code);
   assert.equal(decryptCatalogCode(`${encrypted}tampered`), "");
+});
+
+test("encrypts server-side AI settings without exposing plaintext", () => {
+  const key = "AIza-test-server-side-key-2026";
+  const encrypted = encryptSecret(key, "gemini-api-key");
+  assert.match(encrypted, /^aes-256-gcm:gemini-api-key:/);
+  assert.equal(encrypted.includes(key), false);
+  assert.equal(decryptSecret(encrypted, "gemini-api-key"), key);
+  assert.equal(decryptSecret(encrypted, "other-purpose"), "");
 });
 
 test("uses constant-length comparison for secrets", () => {

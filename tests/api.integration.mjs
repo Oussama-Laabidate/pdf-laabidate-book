@@ -204,12 +204,31 @@ test("secure catalog API flow", { timeout: 90_000 }, async (context) => {
   response = await fetch(`${baseUrl}/api/catalogs/portrait?token=${encodeURIComponent(temporaryToken)}`);
   body = await response.json();
   assert.equal(response.status, 200, JSON.stringify(body));
-  assert.equal(body.hasAccess, false);
+  assert.equal(body.hasAccess, true);
 
   response = await fetch(`${baseUrl}/api/catalogs/portrait/file?token=${encodeURIComponent(temporaryToken)}`, {
     headers: { Range: "bytes=0-9" },
   });
-  assert.equal(response.status, 401);
+  assert.equal(response.status, 206);
+  assert.equal((await response.arrayBuffer()).byteLength, 10);
+
+  response = await jsonRequest(`${baseUrl}/api/admin/catalogs/portrait/temporary-link`, {
+    method: "POST",
+    origin: baseUrl,
+    cookie: adminCookie,
+    body: { maxAgeSeconds: 3600, oneTime: true },
+  });
+  body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  const oneTimeUrl = new URL(body.url);
+
+  response = await fetch(oneTimeUrl, { redirect: "manual" });
+  assert.equal(response.status, 307);
+  assert.match(response.headers.get("location"), /\/catalog\/portrait$/);
+  assert.ok(response.headers.get("set-cookie")?.includes("catalog_access_portrait"));
+
+  response = await fetch(oneTimeUrl, { redirect: "manual" });
+  assert.equal(response.status, 410);
 
   response = await jsonRequest(`${baseUrl}/api/catalogs/portrait/access`, {
     method: "POST",

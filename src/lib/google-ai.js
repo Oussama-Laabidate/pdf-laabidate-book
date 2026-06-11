@@ -1,13 +1,13 @@
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-export async function generateCatalogAi({ task, catalog, text, apiKeyOverride = "" }) {
+export async function generateCatalogAi({ task, catalog, text, apiKeyOverride = "", modelOverride = "" }) {
   const apiKey = String(apiKeyOverride || "").trim() || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Gemini API key is not configured. Add it in the admin field or set GEMINI_API_KEY on Vercel.");
   }
 
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const model = String(modelOverride || process.env.GEMINI_MODEL || DEFAULT_MODEL).trim();
   const response = await fetch(`${API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: {
@@ -41,6 +41,49 @@ export async function generateCatalogAi({ task, catalog, text, apiKeyOverride = 
   };
 }
 
+export async function generateCatalogAnswer({ question, catalog, chunks, apiKeyOverride = "", modelOverride = "" }) {
+  const apiKey = String(apiKeyOverride || "").trim() || process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("AI API key is not configured. Add it in the admin AI settings or set GEMINI_API_KEY on Vercel.");
+  }
+
+  const model = String(modelOverride || process.env.GEMINI_MODEL || DEFAULT_MODEL).trim();
+  const response = await fetch(`${API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      contents: [{
+        role: "user",
+        parts: [{ text: buildQuestionPrompt({ question, catalog, chunks }) }],
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json",
+      },
+    }),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(geminiErrorMessage(payload?.error?.message, response.status));
+  }
+
+  const raw = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
+  const parsed = parseJson(raw);
+  const answer = cleanText(parsed.answer, 2200);
+  return {
+    answer: answer || "I could not find that information in this catalog.",
+    inCatalog: parsed.inCatalog === true,
+    citations: Array.isArray(parsed.citations)
+      ? parsed.citations.map((item) => Math.max(1, Number.parseInt(item, 10) || 1)).slice(0, 6)
+      : [],
+  };
+}
+
 function buildPrompt({ task, catalog, text }) {
   return [
     "You are improving SEO metadata for a digital PDF catalog website.",
@@ -53,6 +96,25 @@ function buildPrompt({ task, catalog, text }) {
     "",
     "PDF text excerpt:",
     text,
+  ].join("\n");
+}
+
+function buildQuestionPrompt({ question, catalog, chunks }) {
+  const context = chunks.map((chunk, index) => (
+    `Excerpt ${index + 1} (page ${chunk.pageNumber}):\n${chunk.text}`
+  )).join("\n\n---\n\n");
+  return [
+    "You answer questions about one PDF catalog only.",
+    "Use only the provided catalog excerpts. Do not use internet knowledge, general knowledge, or another catalog.",
+    "If the answer is not directly supported by the excerpts, set inCatalog to false and answer exactly: \"I could not find that information in this catalog.\"",
+    "Return strict JSON only with keys: answer, inCatalog, citations.",
+    "citations must be an array of page numbers from the excerpts that support the answer.",
+    `Catalog title: ${catalog.title || ""}`,
+    `Catalog category: ${catalog.category || ""}`,
+    `Question: ${question}`,
+    "",
+    "Catalog excerpts:",
+    context || "No extractable catalog text was available.",
   ].join("\n");
 }
 

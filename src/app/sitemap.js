@@ -1,10 +1,17 @@
 import { listPublicCatalogs } from "@/lib/catalog-store";
 import { absoluteUrl } from "@/lib/site";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function sitemap() {
-  const catalogs = await listPublicCatalogs();
+  let catalogs = [];
+  try {
+    catalogs = await listPublicCatalogs();
+  } catch {
+    // Storage backend unavailable (e.g. missing env vars during build).
+    // Return a minimal sitemap instead of crashing.
+  }
+
   return [
     {
       url: absoluteUrl("/"),

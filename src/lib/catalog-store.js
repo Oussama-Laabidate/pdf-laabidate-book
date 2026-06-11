@@ -16,7 +16,13 @@ import {
   toPublicCatalog,
   validatePdfUpload,
 } from "./catalog-model.js";
-import { decryptCatalogCode, encryptCatalogCode, hashCatalogCode } from "./security.js";
+import {
+  decryptCatalogCode,
+  decryptSecret,
+  encryptCatalogCode,
+  encryptSecret,
+  hashCatalogCode,
+} from "./security.js";
 import { readPdfMetadata } from "./pdf-meta.js";
 
 const ROOT = process.cwd();
@@ -45,6 +51,40 @@ export async function listPublicCatalogs() {
 export async function listAdminCatalogs() {
   const manifest = await readManifest();
   return manifest.catalogs.sort(sortCatalogs).map(toAdminCatalogWithAccessCode);
+}
+
+export async function readAiSettings({ includeSecret = false } = {}) {
+  const manifest = await readManifest();
+  const settings = manifest.ai || {};
+  const envKey = String(process.env.GEMINI_API_KEY || "").trim();
+  const savedKey = includeSecret && settings.apiKeyCipher
+    ? decryptSecret(settings.apiKeyCipher, "gemini-api-key")
+    : "";
+  return {
+    provider: "gemini",
+    model: settings.model || process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    configured: Boolean(envKey || settings.apiKeyCipher),
+    source: envKey ? "environment" : settings.apiKeyCipher ? "admin" : "none",
+    apiKey: includeSecret ? (envKey || savedKey) : "",
+  };
+}
+
+export async function updateAiSettings(patch = {}) {
+  const manifest = await readManifest();
+  const current = manifest.ai || {};
+  const model = String(patch.model || current.model || process.env.GEMINI_MODEL || "gemini-2.5-flash").trim().slice(0, 120);
+  const apiKey = String(patch.apiKey || "").trim();
+  const clearApiKey = Boolean(patch.clearApiKey);
+
+  manifest.ai = {
+    provider: "gemini",
+    model: model || "gemini-2.5-flash",
+    apiKeyCipher: clearApiKey ? null : apiKey ? encryptSecret(apiKey, "gemini-api-key") : current.apiKeyCipher || null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await writeManifest(manifest, "Update AI settings");
+  return readAiSettings();
 }
 
 export async function getCatalog(slug, { includeUnpublished = false } = {}) {

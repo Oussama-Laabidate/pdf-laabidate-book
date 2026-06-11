@@ -282,7 +282,7 @@
 
 .settingsSection {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 460px) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 420px) minmax(160px, 220px) auto;
   align-items: end;
   gap: 16px;
   padding: 28px 0;
