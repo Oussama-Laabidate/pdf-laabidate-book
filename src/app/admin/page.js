@@ -601,7 +601,12 @@ function CatalogEditor({ catalog, categories, catalogStats, statsBackend, onSave
   return (
     <form className={`${styles.catalogRow} ${open ? styles.catalogRowOpen : ""}`} onSubmit={save}>
       <button type="button" className={styles.catalogIdentity} onClick={() => setOpen((current) => !current)}>
-        <PdfFirstPagePreview catalog={catalog} className={styles.miniCover} readyClassName={styles.miniCoverReady}>
+        <PdfFirstPagePreview
+          catalog={catalog}
+          className={styles.miniCover}
+          readyClassName={styles.miniCoverReady}
+          enabled={catalog.accessMode === "public"}
+        >
           <span>{catalog.title.slice(0, 24)}</span>
         </PdfFirstPagePreview>
         <div>

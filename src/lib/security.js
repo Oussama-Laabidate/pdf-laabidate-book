@@ -26,6 +26,24 @@ export function secureCompare(left, right) {
   return timingSafeEqual(leftDigest, rightDigest);
 }
 
+export function hashAdminCode(code) {
+  return `sha256:${createHash("sha256").update(String(code || "")).digest("hex")}`;
+}
+
+export function verifyAdminCode(code) {
+  const adminHash = String(process.env.ADMIN_CODE_HASH || "").trim();
+  if (adminHash) {
+    return secureCompare(hashAdminCode(code), adminHash);
+  }
+  const adminCode = process.env.ADMIN_CODE;
+  return Boolean(adminCode && adminCode.length >= 10 && secureCompare(code, adminCode));
+}
+
+export function isAdminConfigured() {
+  return Boolean(String(process.env.ADMIN_CODE_HASH || "").trim()) ||
+    Boolean(process.env.ADMIN_CODE && process.env.ADMIN_CODE.length >= 10);
+}
+
 export async function hashCatalogCode(code) {
   const validCode = validateCatalogCode(code);
   const salt = randomBytes(16);

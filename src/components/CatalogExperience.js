@@ -67,6 +67,7 @@ export default function CatalogExperience({
 
   useEffect(() => {
     if (state.loading || state.hasAccess || !state.catalog) return undefined;
+    if (state.catalog.accessMode === "protected") return undefined;
 
     let active = true;
     let loadingTask = null;
@@ -262,6 +263,9 @@ export default function CatalogExperience({
                 <Tag size={12} /> {state.catalog.category}
               </span>
             </div>
+            <p className={styles.gateShowcaseDescription}>
+              {state.catalog.summary || state.catalog.description || "This protected publication is available after entering its access code."}
+            </p>
           </div>
 
           {/* Right Column: Glass card passcode form */}
@@ -318,6 +322,13 @@ export default function CatalogExperience({
                 ref={bookCanvasRef}
                 className={`${styles.gateBookCanvas} ${bookReady ? styles.bookReady : ""}`}
               />
+              {!bookReady && (
+                <div className={styles.gateBookFallback}>
+                  <span>{state.catalog.category}</span>
+                  <strong>{state.catalog.title}</strong>
+                  <small>{state.catalog.pageCount} pages</small>
+                </div>
+              )}
             </div>
             <div className={styles.gateBookSpine} />
           </div>

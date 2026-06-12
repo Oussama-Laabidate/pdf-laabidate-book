@@ -5,10 +5,11 @@ import {
   ADMIN_COOKIE,
   ADMIN_SESSION_SECONDS,
   createSessionToken,
+  isAdminConfigured,
   isAdminRequest,
   requireSameOrigin,
-  secureCompare,
   sessionCookieOptions,
+  verifyAdminCode,
 } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -27,12 +28,11 @@ export async function POST(request) {
       });
     }
 
-    const adminCode = process.env.ADMIN_CODE;
-    if (!adminCode || adminCode.length < 10) {
+    if (!isAdminConfigured()) {
       return jsonError("Admin access is not configured.", 503);
     }
     const { code } = await request.json();
-    if (!secureCompare(code, adminCode)) return jsonError("Incorrect admin code.", 401);
+    if (!verifyAdminCode(code)) return jsonError("Incorrect admin code.", 401);
 
     const response = NextResponse.json({ success: true, authenticated: true });
     response.cookies.set(

@@ -115,6 +115,7 @@
 }
 
 .gateBookPage {
+  position: relative;
   width: 100%;
   height: 100%;
   border-radius: 4px;
@@ -138,6 +139,34 @@
 
 .gateBookCanvas.bookReady {
   opacity: 1;
+}
+
+.gateBookFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+  color: var(--text);
+  background:
+    linear-gradient(145deg, rgba(71, 111, 255, 0.2), transparent 42%),
+    linear-gradient(180deg, rgba(245, 239, 228, 0.08), transparent),
+    #171c2a;
+}
+
+.gateBookFallback span,
+.gateBookFallback small {
+  color: rgba(245, 239, 228, 0.66);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gateBookFallback strong {
+  font: 740 clamp(1.3rem, 3vw, 2.4rem)/0.95 var(--font-display);
+  overflow-wrap: anywhere;
 }
 
 /* Book spine */
@@ -299,6 +328,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.gateShowcaseDescription {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.75;
 }
 
 /* ── Password card ── */

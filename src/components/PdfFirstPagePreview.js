@@ -7,12 +7,35 @@ export default function PdfFirstPagePreview({
   index = 0,
   className = "",
   readyClassName = "",
+  enabled = true,
   children,
 }) {
   const canvasRef = useRef(null);
+  const wrapperRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
+    const element = wrapperRef.current;
+    if (!element) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "360px 0px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || !visible) return undefined;
     let active = true;
     let loadingTask = null;
 
@@ -48,15 +71,24 @@ export default function PdfFirstPagePreview({
       }
     }
 
-    renderFirstPage();
+    const useIdleCallback = typeof window.requestIdleCallback === "function";
+    const handle = useIdleCallback
+      ? window.requestIdleCallback(renderFirstPage, { timeout: 2200 })
+      : window.setTimeout(renderFirstPage, 80);
     return () => {
       active = false;
+      if (useIdleCallback) {
+        window.cancelIdleCallback(handle);
+      } else {
+        window.clearTimeout(handle);
+      }
       loadingTask?.destroy?.().catch(() => {});
     };
-  }, [catalog.coverUrl, catalog.fileUrl]);
+  }, [catalog.coverUrl, catalog.fileUrl, enabled, visible]);
 
   return (
     <div
+      ref={wrapperRef}
       className={`${className} ${ready ? readyClassName : ""}`}
       style={{ "--cover-ratio": catalog.aspectRatio, "--cover-index": index }}
     >

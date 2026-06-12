@@ -21,12 +21,19 @@ Vercel production should use:
 
 ```env
 ADMIN_CODE=...
+# Or set ADMIN_CODE_HASH=sha256:... instead of ADMIN_CODE.
 SESSION_SECRET=...
 CATALOG_STORAGE_MODE=github
 GITHUB_REPOSITORY=owner/repository
 GITHUB_CONTENT_BRANCH=main
 GITHUB_CONTENT_TOKEN=...
 GEMINI_MODEL=gemini-2.5-flash
+```
+
+When `ADMIN_CODE_HASH` is present, it takes precedence over `ADMIN_CODE`. Generate it locally with:
+
+```bash
+node --input-type=module -e "import('./src/lib/security.js').then(({ hashAdminCode }) => console.log(hashAdminCode('your-new-code')))"
 ```
 
 The GitHub token needs read access to repository contents and write access to `content/catalogs.json`. Production admin changes update that manifest through the GitHub Contents API. PDF binary uploads remain local-only because Vercel Functions do not provide durable project-file writes.

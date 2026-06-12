@@ -241,6 +241,7 @@ function PdfCover({ catalog, index }) {
       index={index}
       className={`${styles.cover} ${catalog.orientation === "landscape" ? styles.landscape : ""}`}
       readyClassName={styles.coverReady}
+      enabled={catalog.accessMode === "public"}
     >
       <div className={styles.coverFallback}>
         <span>{catalog.category}</span>

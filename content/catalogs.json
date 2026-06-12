@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-11T23:46:15.605Z",
+  "updatedAt": "2026-06-12T11:12:50.242Z",
   "catalogs": [
     {
       "slug": "unishorts",
@@ -89,8 +89,8 @@
       "published": true,
       "sortOrder": 5,
       "accessMode": "protected",
-      "codeHash": "scrypt:Q2y0gqiodK87d0JyrmmOvg:Us-XBbgEDPPlq5anM1h8cJy5sQmpty2OpwamhU8-AULXj4h1Ozr0Pz3IsWEwsTbmp_8MQMZoH40eysg1728Orw",
-      "codeCipher": "aes-256-gcm:LeBKDVGrmvDs1ovn:XZM5bWAndqPzKulmZsFhgg:fkcVCcZm-KMhtZ-G"
+      "codeHash": "scrypt:ADJxT9FsfkE0TykZhcLbYQ:NM1BRNkmFGKD8TMZT8-JKrB_nqFdzKqBTXzEZ9RMgyg_5MJlSpM10arP1iFJ161pDVHZLJkLPiVhZD5oS_CVMw",
+      "codeCipher": "aes-256-gcm:1-LzOmAvFAzH3Tds:8H57AZzx7aa03htIJuFK1A:S9MceG7-21VJNJhJJ7M"
     },
     {
       "slug": "stage-rapport",
@@ -107,8 +107,8 @@
       "published": true,
       "sortOrder": 6,
       "accessMode": "protected",
-      "codeHash": "scrypt:brTaSPMmI6Vvdr5OKk2Jkw:nDMdgq2pSsTrPXtMqmob21nXBHzQwgPJAnTS0VhaMnImFNzTMgCtZklrDx8vxmcG3tBibmtojz5RqrqoUtCsPA",
-      "codeCipher": "aes-256-gcm:t-cJzsAwYkl2wyXH:CF_tU4OMXVSL3mUFtBkqCQ:BlIfi8WwcTkV7a-t"
+      "codeHash": "scrypt:pXSll51vUdq4oeV1cCTHJQ:_GLUC1RA_wO0bDMrjpV6dqbkCwfR2yZimUG70xupUEOk10F4DY4_CmveJaq2hTCYwc7xaiiNsi-gqpn3CWhtIg",
+      "codeCipher": "aes-256-gcm:Qed0rKOR_zh8lttM:6ry4B4fRMjX67A5Q0O-ecw:C_fOU-yZi6Sw4Tw9qD8"
     },
     {
       "slug": "portfolio",
@@ -161,8 +161,8 @@
       "published": true,
       "sortOrder": 9,
       "accessMode": "protected",
-      "codeHash": "scrypt:L-0G2OPD9F6UmADuDHo4Yw:inuOIWu7CarIJK7hQ14djE-x-_h3dSwacmO84z6HFsRbjdXtVhvAm-U7hldXslqvNErzAA0iHYO4ZKFv7rg03Q",
-      "codeCipher": "aes-256-gcm:8LDn21qdjfk2xkR4:uT2KjfHQqDyhusyMAdVE_w:gv_dx5NWISpic-YI"
+      "codeHash": "scrypt:DJQt6Tan8bXQAoy5i9dzsA:O4HNYj7ymxL5T4aylD3Xw8e2eHMxYw9ymKJoCa5CZA_YRYTKZcMgh6ncRSuWSDdL_k90ZhB6FM9nd5cQgHLKaw",
+      "codeCipher": "aes-256-gcm:S4VqsPqMjKFhrCJS:wSANigJRjXiHrQVRUtVltA:9eVSINNJbpWcAGHmRRo"
     },
     {
       "slug": "portfolio-2",
@@ -179,8 +179,8 @@
       "published": true,
       "sortOrder": 10,
       "accessMode": "protected",
-      "codeHash": "scrypt:-qcuhfoFoqJWP54KNBG1nA:ddXmMUqSuR1KOOGAD3XqNwrXAxu_US1HEJ5yXeZx9wWFIn2eFxTYbwWFG5lczv-uF-SNfFwPPsmqS6ogAbufmw",
-      "codeCipher": "aes-256-gcm:BYtyZVNUnnztjU0t:Wlcun4JGMLml7DcEiowoQA:6iG9Xp_mM-QlQCn-"
+      "codeHash": "scrypt:yAUIdVjJk8_96XgtOpKlkg:emYIbu-b_Arh0l8VnWyP_uwQUncM8FO_2mylFdF0nZ5U67fiftNvxLK0bddRGesU8wTHemRaO7vyxJF5QFSijw",
+      "codeCipher": "aes-256-gcm:HEefiRRNiWKCZCJZ:UkGEJ91Q_6dWfXAbQjY0ZQ:Sl2eka7M5hmOv0EQ3tA"
     },
     {
       "slug": "fragrance",

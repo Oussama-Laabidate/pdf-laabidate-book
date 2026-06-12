@@ -7,8 +7,10 @@ import {
   encryptCatalogCode,
   encryptSecret,
   hashCatalogCode,
+  hashAdminCode,
   requireSameOrigin,
   secureCompare,
+  verifyAdminCode,
   verifyCatalogCode,
   verifySessionToken,
 } from "../src/lib/security.js";
@@ -52,6 +54,26 @@ test("encrypts server-side AI settings without exposing plaintext", () => {
 test("uses constant-length comparison for secrets", () => {
   assert.equal(secureCompare("admin-code", "admin-code"), true);
   assert.equal(secureCompare("admin-code", "different"), false);
+});
+
+test("verifies admin codes from plaintext or hash configuration", () => {
+  const previousCode = process.env.ADMIN_CODE;
+  const previousHash = process.env.ADMIN_CODE_HASH;
+  try {
+    process.env.ADMIN_CODE = "plain-admin-code-2026";
+    delete process.env.ADMIN_CODE_HASH;
+    assert.equal(verifyAdminCode("plain-admin-code-2026"), true);
+    assert.equal(verifyAdminCode("wrong-admin-code"), false);
+
+    process.env.ADMIN_CODE_HASH = hashAdminCode("hashed-admin-code-2026");
+    assert.equal(verifyAdminCode("hashed-admin-code-2026"), true);
+    assert.equal(verifyAdminCode("plain-admin-code-2026"), false);
+  } finally {
+    if (previousCode === undefined) delete process.env.ADMIN_CODE;
+    else process.env.ADMIN_CODE = previousCode;
+    if (previousHash === undefined) delete process.env.ADMIN_CODE_HASH;
+    else process.env.ADMIN_CODE_HASH = previousHash;
+  }
 });
 
 test("rejects cross-origin mutation requests", () => {
