@@ -41,5 +41,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# catalog PDF files (stored locally, not in git)
-content/catalogs/*.pdf
+# catalog PDF files are stored with Git LFS for Vercel deployments.

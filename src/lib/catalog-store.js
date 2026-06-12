@@ -33,7 +33,7 @@ const MANIFEST_PATH = path.join(CONTENT_ROOT, "catalogs.json");
 const CATALOGS_DIR = path.join(CONTENT_ROOT, "catalogs");
 
 export function storageMode() {
-  return process.env.CATALOG_STORAGE_MODE || (process.env.VERCEL ? "github" : "local");
+  return process.env.CATALOG_STORAGE_MODE || "local";
 }
 
 export function canUploadLocally() {

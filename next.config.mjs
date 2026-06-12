@@ -53,8 +53,8 @@ const nextConfig = {
       },
     ];
   },
-  outputFileTracingExcludes: {
-    "/*": ["./content/catalogs/**/*.pdf"],
+  outputFileTracingIncludes: {
+    "/*": ["./content/**/*.json", "./content/catalogs/**/*.pdf"],
   },
   turbopack: {
     root: process.cwd(),
