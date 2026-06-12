@@ -67,7 +67,6 @@ export default function CatalogExperience({
 
   useEffect(() => {
     if (state.loading || state.hasAccess || !state.catalog) return undefined;
-    if (state.catalog.accessMode === "protected") return undefined;
 
     let active = true;
     let loadingTask = null;

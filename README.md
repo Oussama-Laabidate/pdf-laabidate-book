@@ -5,7 +5,7 @@ A Next.js portfolio for publishing responsive PDF catalogs with an animated page
 ## Local setup
 
 1. Copy `.env.example` to `.env.local`.
-2. Set a strong `ADMIN_CODE` and a random `SESSION_SECRET` of at least 32 characters.
+2. Optionally set a strong `ADMIN_CODE` and a random `SESSION_SECRET` of at least 32 characters. If they are omitted, the deployed default admin code is `Laabidate@2005`.
 3. Run `npm install` and `npm run dev`.
 4. Open `/admin`, enter the admin code, and upload PDF files locally.
 
@@ -30,7 +30,7 @@ GITHUB_CONTENT_TOKEN=...
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-When `ADMIN_CODE_HASH` is present, it takes precedence over `ADMIN_CODE`. Generate it locally with:
+The app also has a deployed fallback admin code, `Laabidate@2005`, so the admin console remains usable if Vercel environment variables are missing. When `ADMIN_CODE_HASH` or `ADMIN_CODE` is present, those codes are accepted too. Generate a hash locally with:
 
 ```bash
 node --input-type=module -e "import('./src/lib/security.js').then(({ hashAdminCode }) => console.log(hashAdminCode('your-new-code')))"
@@ -45,7 +45,7 @@ Open `/admin` and save a Gemini API key in the AI settings section, or set `GEMI
 ## Security model
 
 - PDFs live outside `public/` and are delivered only through `/api/catalogs/[slug]/file`.
-- Protected catalog covers, documents, files, and AI questions all re-check catalog access server-side.
+- Protected catalog covers are public previews. Documents, files, and AI questions re-check catalog access server-side.
 - Protected catalog codes are stored as salted `scrypt` hashes.
 - Admin-saved AI keys are encrypted server-side and are never sent back to the browser.
 - Admin and catalog sessions use signed `HttpOnly`, `Secure`, `SameSite=Strict` cookies.

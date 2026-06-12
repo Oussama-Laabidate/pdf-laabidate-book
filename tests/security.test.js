@@ -8,6 +8,7 @@ import {
   encryptSecret,
   hashCatalogCode,
   hashAdminCode,
+  DEFAULT_ADMIN_CODE_HASH,
   requireSameOrigin,
   secureCompare,
   verifyAdminCode,
@@ -67,12 +68,35 @@ test("verifies admin codes from plaintext or hash configuration", () => {
 
     process.env.ADMIN_CODE_HASH = hashAdminCode("hashed-admin-code-2026");
     assert.equal(verifyAdminCode("hashed-admin-code-2026"), true);
-    assert.equal(verifyAdminCode("plain-admin-code-2026"), false);
+    assert.equal(verifyAdminCode("plain-admin-code-2026"), true);
+    assert.equal(verifyAdminCode("Laabidate@2005"), true);
   } finally {
     if (previousCode === undefined) delete process.env.ADMIN_CODE;
     else process.env.ADMIN_CODE = previousCode;
     if (previousHash === undefined) delete process.env.ADMIN_CODE_HASH;
     else process.env.ADMIN_CODE_HASH = previousHash;
+  }
+});
+
+test("uses the deployment default admin code when env configuration is missing", () => {
+  const previousCode = process.env.ADMIN_CODE;
+  const previousHash = process.env.ADMIN_CODE_HASH;
+  const previousSecret = process.env.SESSION_SECRET;
+  try {
+    delete process.env.ADMIN_CODE;
+    delete process.env.ADMIN_CODE_HASH;
+    delete process.env.SESSION_SECRET;
+    assert.equal(hashAdminCode("Laabidate@2005"), DEFAULT_ADMIN_CODE_HASH);
+    assert.equal(verifyAdminCode("Laabidate@2005"), true);
+    const token = createSessionToken({ type: "admin", maxAgeSeconds: 60 });
+    assert.equal(verifySessionToken(token, { type: "admin" }).type, "admin");
+  } finally {
+    if (previousCode === undefined) delete process.env.ADMIN_CODE;
+    else process.env.ADMIN_CODE = previousCode;
+    if (previousHash === undefined) delete process.env.ADMIN_CODE_HASH;
+    else process.env.ADMIN_CODE_HASH = previousHash;
+    if (previousSecret === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = previousSecret;
   }
 });
 

@@ -8,6 +8,7 @@ export default function PdfFirstPagePreview({
   className = "",
   readyClassName = "",
   enabled = true,
+  delayMs = 0,
   children,
 }) {
   const canvasRef = useRef(null);
@@ -41,6 +42,10 @@ export default function PdfFirstPagePreview({
 
     async function renderFirstPage() {
       setReady(false);
+      if (delayMs > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+        if (!active) return;
+      }
       try {
         const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
         if (!active || !canvasRef.current) return;
@@ -84,7 +89,7 @@ export default function PdfFirstPagePreview({
       }
       loadingTask?.destroy?.().catch(() => {});
     };
-  }, [catalog.coverUrl, catalog.fileUrl, enabled, visible]);
+  }, [catalog.coverUrl, catalog.fileUrl, delayMs, enabled, visible]);
 
   return (
     <div

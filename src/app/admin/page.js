@@ -605,7 +605,7 @@ function CatalogEditor({ catalog, categories, catalogStats, statsBackend, onSave
           catalog={catalog}
           className={styles.miniCover}
           readyClassName={styles.miniCoverReady}
-          enabled={catalog.accessMode === "public"}
+          delayMs={150}
         >
           <span>{catalog.title.slice(0, 24)}</span>
         </PdfFirstPagePreview>
