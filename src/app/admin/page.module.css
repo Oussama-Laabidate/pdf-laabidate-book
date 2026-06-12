@@ -325,6 +325,13 @@
   outline: 0;
 }
 
+.aiActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .analyticsSection {
   display: grid;
   gap: 18px;

@@ -86,7 +86,7 @@ export function encryptSecret(value, purpose = "app-secret") {
   const secret = String(value || "").trim();
   if (!secret) return "";
   const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", genericSecretKey(), iv);
+  const cipher = createCipheriv("aes-256-gcm", genericSecretKey(purpose), iv);
   cipher.setAAD(Buffer.from(`${purpose}:v1`));
   const encrypted = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
@@ -97,17 +97,18 @@ export function decryptSecret(encodedCipher, purpose = "app-secret") {
   const parts = String(encodedCipher || "").split(":");
   if (parts.length !== 5 || parts[0] !== "aes-256-gcm" || parts[1] !== purpose) return "";
 
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", genericSecretKey(), Buffer.from(parts[2], "base64url"));
-    decipher.setAAD(Buffer.from(`${purpose}:v1`));
-    decipher.setAuthTag(Buffer.from(parts[3], "base64url"));
-    return Buffer.concat([
-      decipher.update(Buffer.from(parts[4], "base64url")),
-      decipher.final(),
-    ]).toString("utf8");
-  } catch {
-    return "";
+  for (const key of genericSecretKeys(purpose)) {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(parts[2], "base64url"));
+      decipher.setAAD(Buffer.from(`${purpose}:v1`));
+      decipher.setAuthTag(Buffer.from(parts[3], "base64url"));
+      return Buffer.concat([
+        decipher.update(Buffer.from(parts[4], "base64url")),
+        decipher.final(),
+      ]).toString("utf8");
+    } catch {}
   }
+  return "";
 }
 
 export async function verifyCatalogCode(code, encodedHash) {
@@ -231,8 +232,22 @@ function catalogCodeKey() {
   return createHash("sha256").update(`catalog-access-code:${sessionSecret()}`).digest();
 }
 
-function genericSecretKey() {
-  return createHash("sha256").update(`server-secret:${sessionSecret()}`).digest();
+function genericSecretKey(purpose = "app-secret") {
+  return genericSecretKeys(purpose)[0];
+}
+
+function genericSecretKeys(purpose = "app-secret") {
+  const keys = [];
+  if (purpose === "gemini-api-key") {
+    const configured = String(process.env.AI_SETTINGS_SECRET || process.env.GEMINI_SETTINGS_SECRET || "").trim();
+    if (configured.length >= 32) {
+      keys.push(createHash("sha256").update(`ai-settings-secret:${configured}`).digest());
+    }
+    keys.push(createHash("sha256").update(`ai-settings-secret:${DEFAULT_ADMIN_CODE_HASH}:v1`).digest());
+  }
+
+  keys.push(createHash("sha256").update(`server-secret:${sessionSecret()}`).digest());
+  return dedupeBuffers(keys);
 }
 
 function hashLinkCode(code) {
@@ -247,4 +262,14 @@ function sessionSecret() {
     (process.env.ADMIN_CODE && process.env.ADMIN_CODE.length >= 10 ? hashAdminCode(process.env.ADMIN_CODE) : "") ||
     DEFAULT_ADMIN_CODE_HASH;
   return `catalog-session-fallback:${adminHash}:v1`;
+}
+
+function dedupeBuffers(buffers) {
+  const seen = new Set();
+  return buffers.filter((buffer) => {
+    const key = buffer.toString("base64url");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

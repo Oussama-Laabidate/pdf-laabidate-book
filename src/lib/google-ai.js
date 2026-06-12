@@ -105,10 +105,12 @@ function buildQuestionPrompt({ question, catalog, chunks }) {
   )).join("\n\n---\n\n");
   return [
     "You answer questions about one PDF catalog only.",
-    "Use only the provided catalog excerpts. Do not use internet knowledge, general knowledge, or another catalog.",
+    "The active catalog is the only allowed source. Use only the provided excerpts from this exact catalog.",
+    "Do not use internet knowledge, general knowledge, conversation memory, or information from another catalog.",
     "If the answer is not directly supported by the excerpts, set inCatalog to false and answer exactly: \"I could not find that information in this catalog.\"",
     "Return strict JSON only with keys: answer, inCatalog, citations.",
-    "citations must be an array of page numbers from the excerpts that support the answer.",
+    "citations must be a non-empty array of page numbers from the excerpts that support the answer when inCatalog is true.",
+    `Active catalog slug: ${catalog.slug || ""}`,
     `Catalog title: ${catalog.title || ""}`,
     `Catalog category: ${catalog.category || ""}`,
     `Question: ${question}`,

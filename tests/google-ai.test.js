@@ -41,21 +41,26 @@ test("explains Gemini quota failures with a quota action", async () => {
 });
 
 test("parses scoped catalog question answers from Gemini JSON", async () => {
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    candidates: [{
-      content: {
-        parts: [{ text: JSON.stringify({
-          answer: "The warranty duration is 24 months.",
-          inCatalog: true,
-          citations: [2],
-        }) }],
-      },
-    }],
-  }), { status: 200, headers: { "Content-Type": "application/json" } });
+  let prompt = "";
+  globalThis.fetch = async (_url, options) => {
+    const body = JSON.parse(options.body);
+    prompt = body.contents[0].parts[0].text;
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: {
+          parts: [{ text: JSON.stringify({
+            answer: "The warranty duration is 24 months.",
+            inCatalog: true,
+            citations: [2],
+          }) }],
+        },
+      }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
 
   const answer = await generateCatalogAnswer({
     question: "What is the warranty duration?",
-    catalog: { title: "Catalog 4", category: "Catalogs" },
+    catalog: { slug: "catalog-4", title: "Catalog 4", category: "Catalogs" },
     chunks: [{ pageNumber: 2, text: "Warranty duration is 24 months." }],
     apiKeyOverride: "test-key",
   });
@@ -63,4 +68,6 @@ test("parses scoped catalog question answers from Gemini JSON", async () => {
   assert.equal(answer.inCatalog, true);
   assert.equal(answer.answer, "The warranty duration is 24 months.");
   assert.deepEqual(answer.citations, [2]);
+  assert.match(prompt, /Active catalog slug: catalog-4/);
+  assert.doesNotMatch(prompt, /Catalog 5/);
 });

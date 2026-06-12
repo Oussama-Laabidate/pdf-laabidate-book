@@ -222,17 +222,33 @@ export default function AdminPage() {
 
   async function saveAiSettings() {
     setError("");
-    const shouldClearKey = !aiKeyDraft.trim() && aiSettings.source === "admin" && aiModelDraft === aiSettings.model;
     try {
       const data = await requestJson("PUT", "/api/admin/ai-settings", {
         apiKey: aiKeyDraft.trim(),
         model: aiModelDraft.trim(),
-        clearApiKey: shouldClearKey,
+        clearApiKey: false,
       });
       setAiSettings(data.settings);
       setAiModelDraft(data.settings.model || "gemini-2.5-flash");
       setAiKeyDraft("");
-      setNotice(data.settings.configured ? "AI settings were saved for public catalog questions." : "AI key was cleared.");
+      setNotice(data.settings.configured ? "AI settings were saved for catalog questions." : "AI model was saved. Add a Gemini key to enable questions.");
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  async function clearAiKey() {
+    setError("");
+    try {
+      const data = await requestJson("PUT", "/api/admin/ai-settings", {
+        apiKey: "",
+        model: aiModelDraft.trim(),
+        clearApiKey: true,
+      });
+      setAiSettings(data.settings);
+      setAiModelDraft(data.settings.model || "gemini-2.5-flash");
+      setAiKeyDraft("");
+      setNotice("AI key was cleared.");
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -318,7 +334,7 @@ export default function AdminPage() {
             type="password"
             value={aiKeyDraft}
             onChange={(event) => setAiKeyDraft(event.target.value)}
-            placeholder={aiSettings.configured ? "Key configured on server" : "AIza..."}
+            placeholder={aiSettings.needsApiKey ? "Saved key must be entered again" : aiSettings.configured ? "Key configured on server" : "AIza..."}
             autoComplete="off"
           />
         </label>
@@ -331,9 +347,16 @@ export default function AdminPage() {
             autoComplete="off"
           />
         </label>
-        <button type="button" className={styles.secondaryButton} onClick={saveAiSettings}>
-          <KeyRound size={15} /> {!aiKeyDraft.trim() && aiSettings.source === "admin" && aiModelDraft === aiSettings.model ? "Clear key" : "Save AI"}
-        </button>
+        <div className={styles.aiActions}>
+          <button type="button" className={styles.secondaryButton} onClick={saveAiSettings}>
+            <KeyRound size={15} /> Save AI
+          </button>
+          {(aiSettings.source === "admin" || aiSettings.source === "invalid") && (
+            <button type="button" className={styles.secondaryButton} onClick={clearAiKey}>
+              <Trash2 size={15} /> Clear key
+            </button>
+          )}
+        </div>
       </section>
 
       <section className={styles.analyticsSection}>

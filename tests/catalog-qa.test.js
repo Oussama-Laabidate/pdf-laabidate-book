@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectQuestionContext, validateQuestion } from "../src/lib/catalog-qa.js";
+import { constrainAnswerToSelectedCatalog, selectQuestionContext, validateQuestion } from "../src/lib/catalog-qa.js";
 
 test("validates question length before calling AI", () => {
   assert.equal(validateQuestion("  What is the deadline?  "), "What is the deadline?");
@@ -26,4 +26,34 @@ test("marks unrelated questions as having no relevant local context", () => {
   ]);
 
   assert.equal(result.hasRelevantContext, false);
+});
+
+test("accepts catalog answers only when citations point to selected pages", () => {
+  const chunks = [{ pageNumber: 2, text: "Warranty duration is 24 months." }];
+
+  assert.deepEqual(
+    constrainAnswerToSelectedCatalog({
+      answer: "The warranty duration is 24 months.",
+      inCatalog: true,
+      citations: [2, 9],
+    }, chunks),
+    {
+      answer: "The warranty duration is 24 months.",
+      inCatalog: true,
+      citations: [2],
+    },
+  );
+
+  assert.deepEqual(
+    constrainAnswerToSelectedCatalog({
+      answer: "That detail appears in a different catalog.",
+      inCatalog: true,
+      citations: [9],
+    }, chunks),
+    {
+      answer: "I could not find that information in this catalog.",
+      inCatalog: false,
+      citations: [],
+    },
+  );
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertSlug } from "@/lib/catalog-model";
-import { selectQuestionContext, validateQuestion } from "@/lib/catalog-qa";
+import { CATALOG_FALLBACK_ANSWER, constrainAnswerToSelectedCatalog, selectQuestionContext, validateQuestion } from "@/lib/catalog-qa";
 import { getCatalog, readAiSettings, readCatalogDocument } from "@/lib/catalog-store";
 import { generateCatalogAnswer } from "@/lib/google-ai";
 import { jsonError, serverError } from "@/lib/http";
@@ -46,7 +46,7 @@ export async function POST(request, context) {
     if (!settings.apiKey) return jsonError("AI is not configured for this site.", 503);
 
     const document = await readCatalogDocument(catalog);
-    const extracted = await readPdfText(document, { maxPages: 80, maxChars: 80000 });
+    const extracted = await readPdfText(document, { maxPages: 200, maxChars: 140000 });
     if (extracted.text.length < 80) {
       return jsonError("This catalog does not contain enough extractable text for AI questions.", 422);
     }
@@ -55,19 +55,19 @@ export async function POST(request, context) {
     if (!contextResult.hasRelevantContext) {
       return NextResponse.json({
         success: true,
-        answer: "I could not find that information in this catalog.",
+        answer: CATALOG_FALLBACK_ANSWER,
         inCatalog: false,
         citations: [],
       });
     }
 
-    const result = await generateCatalogAnswer({
+    const result = constrainAnswerToSelectedCatalog(await generateCatalogAnswer({
       question,
       catalog,
       chunks: contextResult.chunks,
       apiKeyOverride: settings.apiKey,
       modelOverride: settings.model,
-    });
+    }), contextResult.chunks);
     await recordAiRun(slug).catch(() => {});
     return NextResponse.json({
       success: true,

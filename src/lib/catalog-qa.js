@@ -3,6 +3,7 @@ const MAX_QUESTION_LENGTH = 600;
 const CHUNK_SIZE = 1400;
 const CHUNK_OVERLAP = 180;
 const MAX_CHUNKS = 8;
+export const CATALOG_FALLBACK_ANSWER = "I could not find that information in this catalog.";
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "how", "i", "in", "is", "it",
   "of", "on", "or", "that", "the", "this", "to", "was", "what", "when", "where", "which", "who",
@@ -44,6 +45,30 @@ export function selectQuestionContext(question, pages) {
   return {
     chunks: selected,
     hasRelevantContext: selected.some((chunk) => chunk.score > 0) || terms.length === 0,
+  };
+}
+
+export function constrainAnswerToSelectedCatalog(result, chunks) {
+  const allowedPages = new Set((chunks || []).map((chunk) => Number(chunk.pageNumber)).filter(Number.isFinite));
+  const citations = Array.isArray(result?.citations)
+    ? result.citations
+      .map((item) => Number.parseInt(item, 10))
+      .filter((pageNumber) => allowedPages.has(pageNumber))
+      .slice(0, 6)
+    : [];
+
+  if (result?.inCatalog !== true || citations.length === 0) {
+    return {
+      answer: CATALOG_FALLBACK_ANSWER,
+      inCatalog: false,
+      citations: [],
+    };
+  }
+
+  return {
+    answer: String(result.answer || "").replace(/\s+/g, " ").trim() || CATALOG_FALLBACK_ANSWER,
+    inCatalog: true,
+    citations,
   };
 }
 

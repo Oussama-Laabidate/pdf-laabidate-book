@@ -28,6 +28,7 @@ GITHUB_REPOSITORY=owner/repository
 GITHUB_CONTENT_BRANCH=main
 GITHUB_CONTENT_TOKEN=...
 GEMINI_MODEL=gemini-2.5-flash
+AI_SETTINGS_SECRET=...
 ```
 
 The app also has a deployed fallback admin code, `Laabidate@2005`, so the admin console remains usable if Vercel environment variables are missing. When `ADMIN_CODE_HASH` or `ADMIN_CODE` is present, those codes are accepted too. Generate a hash locally with:
@@ -40,7 +41,7 @@ The GitHub token needs read access to repository contents and write access to `c
 
 ## Catalog AI
 
-Open `/admin` and save a Gemini API key in the AI settings section, or set `GEMINI_API_KEY` directly in Vercel. Admin-saved keys are encrypted into `content/catalogs.json` with `SESSION_SECRET`, so keep `SESSION_SECRET` stable across deployments. Visitors can ask questions only after they have access to the catalog, and answers are generated from the active PDF catalog excerpts only.
+Open `/admin` and save a Gemini API key in the AI settings section, or set `GEMINI_API_KEY` directly in Vercel. Admin-saved keys are encrypted into `content/catalogs.json` with `AI_SETTINGS_SECRET`; keep that value stable across deployments. If `AI_SETTINGS_SECRET` is omitted, the app uses a stable project fallback so saved keys still survive normal redeploys. Visitors can ask questions only after they have access to the catalog, and answers are accepted only when Gemini cites pages from the active PDF catalog excerpts.
 
 ## Security model
 

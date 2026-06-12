@@ -52,6 +52,28 @@ test("encrypts server-side AI settings without exposing plaintext", () => {
   assert.equal(decryptSecret(encrypted, "other-purpose"), "");
 });
 
+test("keeps Gemini API key encryption stable across session secret changes", () => {
+  const previousSecret = process.env.SESSION_SECRET;
+  const previousAiSecret = process.env.AI_SETTINGS_SECRET;
+  const previousGeminiSecret = process.env.GEMINI_SETTINGS_SECRET;
+  try {
+    delete process.env.AI_SETTINGS_SECRET;
+    delete process.env.GEMINI_SETTINGS_SECRET;
+    process.env.SESSION_SECRET = "first-session-secret-that-is-longer-than-thirty-two-characters";
+    const encrypted = encryptSecret("AIza-stable-gemini-key-2026", "gemini-api-key");
+
+    process.env.SESSION_SECRET = "second-session-secret-that-is-longer-than-thirty-two-characters";
+    assert.equal(decryptSecret(encrypted, "gemini-api-key"), "AIza-stable-gemini-key-2026");
+  } finally {
+    if (previousSecret === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = previousSecret;
+    if (previousAiSecret === undefined) delete process.env.AI_SETTINGS_SECRET;
+    else process.env.AI_SETTINGS_SECRET = previousAiSecret;
+    if (previousGeminiSecret === undefined) delete process.env.GEMINI_SETTINGS_SECRET;
+    else process.env.GEMINI_SETTINGS_SECRET = previousGeminiSecret;
+  }
+});
+
 test("uses constant-length comparison for secrets", () => {
   assert.equal(secureCompare("admin-code", "admin-code"), true);
   assert.equal(secureCompare("admin-code", "different"), false);

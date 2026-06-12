@@ -57,14 +57,16 @@ export async function readAiSettings({ includeSecret = false } = {}) {
   const manifest = await readManifest();
   const settings = manifest.ai || {};
   const envKey = String(process.env.GEMINI_API_KEY || "").trim();
-  const savedKey = includeSecret && settings.apiKeyCipher
+  const savedKey = settings.apiKeyCipher
     ? decryptSecret(settings.apiKeyCipher, "gemini-api-key")
     : "";
+  const savedKeyReadable = Boolean(savedKey);
   return {
     provider: "gemini",
     model: settings.model || process.env.GEMINI_MODEL || "gemini-2.5-flash",
-    configured: Boolean(envKey || settings.apiKeyCipher),
-    source: envKey ? "environment" : settings.apiKeyCipher ? "admin" : "none",
+    configured: Boolean(envKey || savedKeyReadable),
+    source: envKey ? "environment" : savedKeyReadable ? "admin" : settings.apiKeyCipher ? "invalid" : "none",
+    needsApiKey: Boolean(settings.apiKeyCipher && !savedKeyReadable && !envKey),
     apiKey: includeSecret ? (envKey || savedKey) : "",
   };
 }
