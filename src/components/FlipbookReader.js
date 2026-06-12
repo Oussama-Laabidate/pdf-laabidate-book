@@ -54,6 +54,10 @@ export default function FlipbookReader({ book }) {
   const previousPageRef = useRef(0);
   const dragStartRef = useRef(null);
   const panCaptureRef = useRef(null);
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const activePointersRef = useRef(new Map());
+  const pinchStartRef = useRef(null);
   const soundRef = useRef(true);
   const ambientRef = useRef(null);
 
@@ -75,6 +79,14 @@ export default function FlipbookReader({ book }) {
       window.clearTimeout(timer);
     };
   }, [documentInfo, isSinglePageView]);
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  useEffect(() => {
+    panRef.current = pan;
+  }, [pan]);
 
   const renderPage = useCallback(async (pageNumber) => {
     const pdf = pdfRef.current;
@@ -261,7 +273,7 @@ export default function FlipbookReader({ book }) {
         minHeight: 120,
         maxHeight: 1500,
         showCover: true,
-        usePortrait: true,
+        usePortrait: false,
         autoSize: true,
         drawShadow: true,
         maxShadowOpacity: 0.32,
@@ -421,19 +433,19 @@ export default function FlipbookReader({ book }) {
     changeZoom(direction * step);
   }
 
-  const getPanBounds = useCallback(() => {
+  const getPanBounds = useCallback((targetZoom = zoom) => {
     const viewer = viewerRef.current;
     const stage = stageRef.current;
     if (!viewer || !stage) {
-      const fallback = 220 * Math.max(1, zoom);
+      const fallback = 220 * Math.max(1, targetZoom);
       return { x: fallback, y: fallback };
     }
 
     const viewerRect = viewer.getBoundingClientRect();
-    const stageWidth = stage.offsetWidth || stage.getBoundingClientRect().width / zoom;
-    const stageHeight = stage.offsetHeight || stage.getBoundingClientRect().height / zoom;
-    const scaledWidth = stageWidth * zoom;
-    const scaledHeight = stageHeight * zoom;
+    const stageWidth = stage.offsetWidth || stage.getBoundingClientRect().width / targetZoom;
+    const stageHeight = stage.offsetHeight || stage.getBoundingClientRect().height / targetZoom;
+    const scaledWidth = stageWidth * targetZoom;
+    const scaledHeight = stageHeight * targetZoom;
     const overflowX = Math.max(0, (scaledWidth - viewerRect.width) / 2);
     const overflowY = Math.max(0, (scaledHeight - viewerRect.height) / 2);
 
@@ -456,28 +468,98 @@ export default function FlipbookReader({ book }) {
   }, [currentPage, documentInfo, getPanBounds, isSinglePageView, orientation]);
 
   function startPan(event) {
-    if (event.button !== 1) return;
     startAmbientSound().catch(() => {});
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (activePointersRef.current.size >= 2) {
+        const [first, second] = Array.from(activePointersRef.current.values());
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        panCaptureRef.current = event.currentTarget;
+        pinchStartRef.current = {
+          distance: pointerDistance(first, second),
+          center: pointerCenter(first, second),
+          zoom: zoomRef.current,
+          pan: panRef.current,
+        };
+        setDragging(true);
+        return;
+      }
+
+      if (zoomRef.current > 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        panCaptureRef.current = event.currentTarget;
+        setDragging(true);
+        dragStartRef.current = { x: event.clientX, y: event.clientY, pan: panRef.current };
+      }
+      return;
+    }
+
+    if (event.button !== 1) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     panCaptureRef.current = event.currentTarget;
     setDragging(true);
-    dragStartRef.current = { x: event.clientX, y: event.clientY, pan };
+    dragStartRef.current = { x: event.clientX, y: event.clientY, pan: panRef.current };
   }
 
   function movePan(event) {
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      if (!activePointersRef.current.has(event.pointerId)) return;
+      activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (activePointersRef.current.size >= 2 && pinchStartRef.current) {
+        const [first, second] = Array.from(activePointersRef.current.values());
+        const nextZoom = clamp(
+          Number((pinchStartRef.current.zoom * (pointerDistance(first, second) / pinchStartRef.current.distance)).toFixed(2)),
+          0.75,
+          3.5,
+        );
+        const center = pointerCenter(first, second);
+        const bounds = getPanBounds(nextZoom);
+        event.preventDefault();
+        event.stopPropagation();
+        setZoom(nextZoom);
+        const nextPan = nextZoom <= 1 ? { x: 0, y: 0 } : {
+          x: clamp(pinchStartRef.current.pan.x + center.x - pinchStartRef.current.center.x, -bounds.x, bounds.x),
+          y: clamp(pinchStartRef.current.pan.y + center.y - pinchStartRef.current.center.y, -bounds.y, bounds.y),
+        };
+        zoomRef.current = nextZoom;
+        panRef.current = nextPan;
+        setPan(nextPan);
+        return;
+      }
+    }
+
     if (!dragging || !dragStartRef.current) return;
     event.preventDefault();
     event.stopPropagation();
     const bounds = getPanBounds();
-    setPan({
+    const nextPan = {
       x: clamp(dragStartRef.current.pan.x + event.clientX - dragStartRef.current.x, -bounds.x, bounds.x),
       y: clamp(dragStartRef.current.pan.y + event.clientY - dragStartRef.current.y, -bounds.y, bounds.y),
-    });
+    };
+    panRef.current = nextPan;
+    setPan(nextPan);
   }
 
   function endPan(event) {
+    if (event.pointerType === "touch" || event.pointerType === "pen") {
+      activePointersRef.current.delete(event.pointerId);
+      pinchStartRef.current = null;
+
+      if (activePointersRef.current.size === 1 && zoomRef.current > 1) {
+        const remaining = Array.from(activePointersRef.current.values())[0];
+        dragStartRef.current = { x: remaining.x, y: remaining.y, pan: panRef.current };
+        return;
+      }
+    }
+
     if (!dragging) return;
     event.preventDefault();
     event.stopPropagation();
@@ -861,6 +943,17 @@ function ToolbarButton({ label, active = false, disabled = false, onClick, child
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function pointerDistance(first, second) {
+  return Math.hypot(first.x - second.x, first.y - second.y) || 1;
+}
+
+function pointerCenter(first, second) {
+  return {
+    x: (first.x + second.x) / 2,
+    y: (first.y + second.y) / 2,
+  };
 }
 
 function restorePageDensities(instance, pageCount) {
