@@ -310,13 +310,7 @@ export async function createCatalogFileResponse(catalog, rangeHeader) {
 }
 
 export async function generateCatalogCover(catalog) {
-  let originalBytes;
-  if (storageMode() === "github") {
-    originalBytes = await readCatalogDocument(catalog);
-  } else {
-    const absolutePdfPath = resolvePdfPath(catalog.pdfPath);
-    originalBytes = await fsPromises.readFile(absolutePdfPath);
-  }
+  const originalBytes = await readCatalogDocument(catalog);
 
   const srcDoc = await PDFDocument.load(originalBytes);
   const pdfDoc = await PDFDocument.create();
@@ -371,7 +365,11 @@ export async function readCatalogDocument(catalog) {
   if (storageMode() === "github") {
     return readGithubBinary(catalog.pdfPath);
   }
-  return fsPromises.readFile(resolvePdfPath(catalog.pdfPath));
+  const bytes = await fsPromises.readFile(resolvePdfPath(catalog.pdfPath));
+  if (isGitLfsPointer(bytes)) {
+    return readGithubMediaBinary(catalog.pdfPath);
+  }
+  return bytes;
 }
 
 export async function readManifest() {
@@ -399,6 +397,9 @@ export async function writeManifest(manifest, commitMessage) {
 async function localFileResponse(pdfPath, rangeHeader) {
   const absolutePath = resolvePdfPath(pdfPath);
   const stats = await fsPromises.stat(absolutePath);
+  if (await isGitLfsPointerFile(absolutePath)) {
+    return githubMediaFileResponse(pdfPath, rangeHeader);
+  }
   let range = null;
   try {
     range = parseByteRange(rangeHeader, stats.size);
@@ -463,6 +464,33 @@ async function githubFileResponse(pdfPath, rangeHeader) {
   return new Response(response.body, { status: response.status, headers });
 }
 
+async function githubMediaFileResponse(pdfPath, rangeHeader) {
+  assertPdfPath(pdfPath);
+  const response = await fetch(githubMediaUrl(pdfPath), {
+    headers: {
+      ...(rangeHeader ? { Range: rangeHeader } : {}),
+    },
+    cache: "no-store",
+    redirect: "follow",
+  });
+
+  if (!response.ok) {
+    return new Response(null, { status: response.status });
+  }
+
+  const headers = new Headers({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": "inline",
+    "Cache-Control": "private, no-store",
+    "Accept-Ranges": response.headers.get("accept-ranges") || "bytes",
+  });
+  for (const name of ["content-length", "content-range"]) {
+    const value = response.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  return new Response(response.body, { status: response.status, headers });
+}
+
 async function readGithubBinary(pdfPath) {
   assertPdfPath(pdfPath);
   const response = await githubRequest(`/contents/${encodeGithubPath(pdfPath)}?ref=${encodeURIComponent(githubConfig().branch)}`, {
@@ -471,6 +499,16 @@ async function readGithubBinary(pdfPath) {
     },
   });
   if (!response.ok) throw new Error(`GitHub PDF read failed with status ${response.status}.`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function readGithubMediaBinary(pdfPath) {
+  assertPdfPath(pdfPath);
+  const response = await fetch(githubMediaUrl(pdfPath), {
+    cache: "no-store",
+    redirect: "follow",
+  });
+  if (!response.ok) throw new Error(`GitHub media read failed with status ${response.status}.`);
   return Buffer.from(await response.arrayBuffer());
 }
 
@@ -529,6 +567,20 @@ function githubConfig() {
   };
 }
 
+function githubMediaUrl(repoPath) {
+  const configuredBase = String(process.env.CATALOG_MEDIA_BASE_URL || "").trim();
+  if (configuredBase) {
+    return `${configuredBase.replace(/\/+$/, "")}/${encodeGithubPath(repoPath)}`;
+  }
+
+  const repository = process.env.GITHUB_REPOSITORY ||
+    (process.env.VERCEL_GIT_REPO_OWNER && process.env.VERCEL_GIT_REPO_SLUG
+      ? `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`
+      : "Oussama-Laabidate/pdf-laabidate-book");
+  const branch = process.env.GITHUB_CONTENT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || "main";
+  return `https://media.githubusercontent.com/media/${repository}/${encodeURIComponent(branch)}/${encodeGithubPath(repoPath)}`;
+}
+
 function resolvePdfPath(pdfPath) {
   const validPath = assertPdfPath(pdfPath);
   const resolved = path.resolve(CATALOGS_DIR, path.basename(validPath));
@@ -541,6 +593,24 @@ function resolvePdfPath(pdfPath) {
 
 function encodeGithubPath(repoPath) {
   return repoPath.split("/").map(encodeURIComponent).join("/");
+}
+
+async function isGitLfsPointerFile(filePath) {
+  const handle = await fsPromises.open(filePath, "r");
+  try {
+    const buffer = Buffer.alloc(128);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    return isGitLfsPointer(buffer.subarray(0, bytesRead));
+  } finally {
+    await handle.close();
+  }
+}
+
+function isGitLfsPointer(bytes) {
+  return Buffer.from(bytes)
+    .subarray(0, 48)
+    .toString("utf8")
+    .startsWith("version https://git-lfs.github.com/spec/v1");
 }
 
 async function readMetadataFromLocalFile(finalPath, tempPath, filename, sizeBytes) {
